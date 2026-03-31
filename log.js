@@ -51,12 +51,7 @@ async function handleAuth() {
       // Redirect based on role and port
       if (data.user && data.user.role === 'admin') {
           console.log("Admin detected, redirecting...");
-          // If accessing via port 3001 or any port if we want to force admin panel
-          if (window.location.port === '3001') {
-              window.location.href = 'admin-panel.html';
-          } else {
-              window.location.href = 'admin.html';
-          }
+          window.location.href = 'admin-panel.html';
       } else {
           console.log("Consumer detected, redirecting to index...");
           window.location.href = 'index.html';
