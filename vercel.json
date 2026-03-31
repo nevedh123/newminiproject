@@ -1,4 +1,8 @@
 {
+  "version": 2,
+  "buildCommand": "",
+  "installCommand": "echo skip",
+  "outputDirectory": "./",
   "rewrites": [
     {
       "source": "/api/:path*",
