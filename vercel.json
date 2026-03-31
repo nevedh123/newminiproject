@@ -2,11 +2,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR_RENDER_BACKEND_URL.onrender.com/api/:path*"
+      "destination": "https://newminiproject-27o1.onrender.com/api/:path*"
     },
     {
       "source": "/socket.io/:path*",
-      "destination": "https://YOUR_RENDER_BACKEND_URL.onrender.com/socket.io/:path*"
+      "destination": "https://newminiproject-27o1.onrender.com/socket.io/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://newminiproject-27o1.onrender.com/uploads/:path*"
     }
   ]
 }

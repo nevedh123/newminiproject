@@ -791,7 +791,8 @@
     // --- Real-Time (Socket.IO) ---
     let socket;
     function initRealTime(userId) {
-      socket = io();
+      const BACKEND_URL = window.location.hostname === 'localhost' ? '' : 'https://newminiproject-27o1.onrender.com';
+      socket = io(BACKEND_URL);
 
       socket.on('connect', () => {
         console.log('[SOCKET] Connected as', socket.id);
