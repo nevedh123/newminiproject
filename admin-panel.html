@@ -284,7 +284,15 @@
     </main>
 
     <script>
-        const MAIN_API = '/api';
+        let BASE_URL = '';
+        if (window.location.protocol === 'file:') {
+            BASE_URL = 'http://localhost:3000';
+        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (window.location.port && window.location.port !== '3000') {
+                BASE_URL = 'http://localhost:3000';
+            }
+        }
+        const MAIN_API = `${BASE_URL}/api`;
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || 'null');
 

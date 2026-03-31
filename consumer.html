@@ -313,13 +313,18 @@
           class="bg-white dark:bg-slate-800 rounded-3xl p-6 card-shadow border border-slate-100 dark:border-slate-800 sticky top-28 h-[calc(100vh-140px)] flex flex-col">
 
           <!-- Tabs for Sidebar -->
-          <div class="flex gap-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-2">
+          <div class="flex gap-3 mb-6 border-b border-slate-100 dark:border-slate-700 pb-2 overflow-x-auto hide-scrollbar">
             <button onclick="switchSidebarTab('splits')" id="tab-side-splits"
-              class="text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2">Splits</button>
+              class="text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2 shrink-0">Splits</button>
             <button onclick="switchSidebarTab('tracking')" id="tab-side-tracking"
-              class="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1">
+              class="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1 shrink-0">
               Tracking
               <span id="trackingDot" class="w-1.5 h-1.5 bg-red-500 rounded-full hidden"></span>
+            </button>
+            <button onclick="switchSidebarTab('mysplits')" id="tab-side-mysplits"
+              class="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1 shrink-0">
+              My Splits
+              <span id="mySplitsDot" class="w-1.5 h-1.5 bg-primary rounded-full hidden"></span>
             </button>
           </div>
 
@@ -361,6 +366,21 @@
               <div class="text-center py-12 text-slate-500 text-sm italic">No active orders to track.</div>
             </div>
           </div>
+
+          <!-- My Created Splits Container -->
+          <div id="side-mysplits-content" class="hidden flex-col flex-grow overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-slate-100 text-lg">My Created Splits</h3>
+                <p class="text-xs text-slate-500">Tap a split to see who joined</p>
+              </div>
+              <span class="bg-primary/10 text-primary py-1 px-3 rounded-full text-[10px] font-bold" id="myCreatedSplitsCount">0 Active</span>
+            </div>
+
+            <div class="flex-grow overflow-y-auto sidebar-scroll pr-2 space-y-4" id="myCreatedSplitsContainer">
+              <div class="text-center py-12 text-slate-500 text-sm">You haven't created any splits yet.</div>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
@@ -396,7 +416,7 @@
   <div id="customSplitModal"
     class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
     <div
-      class="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-slate-100 dark:border-slate-700">
+      class="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-slate-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto sidebar-scroll">
 
       <!-- Step 1: Category Selection -->
       <div id="splitStep1">
@@ -720,7 +740,15 @@
   </div>
 
   <script>
-    const API_URL = '/api';
+    let BASE_URL = '';
+    if (window.location.protocol === 'file:') {
+        BASE_URL = 'http://localhost:3000';
+    } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (window.location.port && window.location.port !== '3000') {
+            BASE_URL = 'http://localhost:3000';
+        }
+    }
+    const API_URL = `${BASE_URL}/api`;
     let user = null;
     let allListings = [];
     let cachedMySplits = [];
@@ -833,28 +861,46 @@
     function switchSidebarTab(tab) {
       const splitsBtn = document.getElementById('tab-side-splits');
       const trackingBtn = document.getElementById('tab-side-tracking');
+      const mysplitsBtn = document.getElementById('tab-side-mysplits');
       const splitsContent = document.getElementById('side-splits-content');
       const trackingContent = document.getElementById('side-tracking-content');
+      const mysplitsContent = document.getElementById('side-mysplits-content');
+
+      const activeClass = 'text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2 shrink-0';
+      const inactiveClass = 'text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1 shrink-0';
+
+      // Hide all
+      splitsContent.classList.add('hidden');
+      trackingContent.classList.add('hidden');
+      trackingContent.classList.remove('flex');
+      mysplitsContent.classList.add('hidden');
+      mysplitsContent.classList.remove('flex');
+
+      // Reset all buttons
+      splitsBtn.className = inactiveClass;
+      trackingBtn.className = inactiveClass;
+      mysplitsBtn.className = inactiveClass;
 
       if (tab === 'splits') {
-        splitsBtn.className = 'text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2';
-        trackingBtn.className = 'text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1';
+        splitsBtn.className = activeClass;
         splitsContent.classList.remove('hidden');
-        trackingContent.classList.add('hidden');
-        trackingContent.classList.remove('flex');
-      } else {
-        trackingBtn.className = 'text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2';
-        splitsBtn.className = 'text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1';
+      } else if (tab === 'tracking') {
+        trackingBtn.className = activeClass;
         trackingContent.classList.remove('hidden');
         trackingContent.classList.add('flex');
-        splitsContent.classList.add('hidden');
         document.getElementById('trackingDot').classList.add('hidden');
+      } else if (tab === 'mysplits') {
+        mysplitsBtn.className = activeClass;
+        mysplitsContent.classList.remove('hidden');
+        mysplitsContent.classList.add('flex');
+        fetchMyCreatedSplits();
       }
     }
 
     async function refreshDashboard() {
       await fetchListings();
       await fetchJoinedSplits();
+      await fetchMyCreatedSplits();
       await fetchStats();
       await fetchPaymentHistory();
     }
@@ -910,7 +956,7 @@
       const title = l.details?.app || l.details?.activity || l.type.replace(/_/g, ' ');
 
       return `
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl card-shadow border border-white dark:border-slate-800 group hover:border-primary transition-all flex flex-col justify-between">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl card-shadow border border-white dark:border-slate-800 group hover:border-primary transition-all flex flex-col justify-between cursor-pointer" onclick="this.classList.toggle('expanded')">
                 <div class="flex items-start justify-between mb-6">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 ${color} flex items-center justify-center rounded-2xl shrink-0">
@@ -923,13 +969,10 @@
                                     <span class="material-icons text-[10px]">location_on</span>
                                     ${l.location || 'Remote'}
                                 </p>
-                                ${['cargo_split', 'cold_storage', 'warehouse'].includes(l.type) && l.date ? `
+                                ${l.date && l.date !== 'Recurring' ? `
                                 <p class="text-[10px] text-primary font-bold flex items-center gap-1">
                                     <span class="material-icons text-[10px]">event</span>
-                                    Available: ${l.date.split(',').map(d => {
-        const dt = new Date(d.trim());
-        return dt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-      }).join(', ')}
+                                    Available: ${l.date}
                                 </p>` : ''}
                             </div>
                         </div>
@@ -944,9 +987,13 @@
                         <p class="font-black text-slate-900 dark:text-white">₹${l.price_per_unit}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                         <input type="number" id="qty-${l.id}" value="1" min="1" class="w-14 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-none text-center text-sm font-bold p-0 focus:ring-2 focus:ring-primary outline-none">
-                         <button onclick="handleBookClick('${l.id}', '${l.type}')" class="bg-secondary dark:bg-slate-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:shadow-lg transition-all">Book</button>
+                         <input onclick="event.stopPropagation()" type="number" id="qty-${l.id}" value="1" min="1" class="w-14 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-none text-center text-sm font-bold p-0 focus:ring-2 focus:ring-primary outline-none">
+                         <button onclick="event.stopPropagation(); handleBookClick('${l.id}', '${l.type}')" class="bg-secondary dark:bg-slate-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:shadow-lg transition-all">Book</button>
                     </div>
+                </div>
+                <div class="hidden group-[.expanded]:block mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 cursor-default" onclick="event.stopPropagation()">
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Description</p>
+                    <p class="text-sm text-slate-700 dark:text-slate-300">${l.details?.info || 'No description provided.'}</p>
                 </div>
             </div>
         `;
@@ -1032,14 +1079,22 @@
         cancelSection = `<button onclick="requestCancellation('${b.id}')" class="w-full py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-bold hover:bg-red-100 transition-colors">Request Cancellation</button>`;
       }
 
+      // Determine title: prefer split_name, then item_title, then type
+      const splitTitle = b.details?.split_name || b.date || b.type.replace(/_/g, ' ');
+      const splitSubtitle = [];
+      if (b.details?.split_date) splitSubtitle.push(b.details.split_date);
+      if (b.details?.split_time) splitSubtitle.push(b.details.split_time);
+      if (b.details?.split_place) splitSubtitle.push(b.details.split_place);
+      const splitMeta = splitSubtitle.length > 0 ? splitSubtitle.join(' · ') : (b.location || 'Remote');
+
       return `
             <div class="split-item group bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border ${isCancelApproved ? 'border-emerald-200 dark:border-emerald-900/40' : 'border-transparent hover:border-slate-200 dark:hover:border-slate-700'} transition-all cursor-pointer" onclick="this.classList.toggle('expanded')">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-2 h-2 rounded-full ${statusColor}"></div>
                         <div class="truncate">
-                            <h4 class="font-bold text-sm truncate">${b.type.replace(/_/g, ' ')}</h4>
-                            <p class="text-[10px] text-slate-500 font-medium">${b.location || 'Remote'}</p>
+                            <h4 class="font-bold text-sm truncate">${splitTitle}</h4>
+                            <p class="text-[10px] text-slate-500 font-medium truncate">${splitMeta}</p>
                         </div>
                     </div>
                     <span class="material-symbols-outlined text-slate-400 group-[.expanded]:rotate-180 transition-transform">expand_more</span>
@@ -1052,7 +1107,7 @@
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500">Date</span>
-                        <span class="font-bold text-primary">${b.details && b.details.selected_date ? b.details.selected_date : b.date}</span>
+                        <span class="font-bold text-primary">${b.details?.split_date || b.details?.selected_date || b.date || '—'}</span>
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500">Total Paid</span>
@@ -1068,6 +1123,120 @@
                 </div>
             </div>
         `;
+    }
+
+    async function fetchMyCreatedSplits() {
+      try {
+        const res = await apiFetch(`${API_URL}/listings/my`);
+        if (!res.ok) return;
+        const listings = await res.json();
+
+        // Only show custom/other type listings (the new custom split flow)
+        const myCustomListings = listings.filter(l =>
+          !['cargo_split', 'cold_storage', 'warehouse', 'digital_subscriptions'].includes(l.type)
+        );
+
+        const cont = document.getElementById('myCreatedSplitsContainer');
+        cont.innerHTML = '';
+
+        document.getElementById('myCreatedSplitsCount').innerText = `${myCustomListings.length} Active`;
+
+        if (myCustomListings.length === 0) {
+          cont.innerHTML = '<p class="text-center py-12 text-slate-500 text-sm">You haven\'t created any custom splits yet.</p>';
+          return;
+        }
+
+        if (myCustomListings.length > 0) document.getElementById('mySplitsDot').classList.remove('hidden');
+
+        myCustomListings.forEach(l => cont.insertAdjacentHTML('beforeend', createCreatedSplitHTML(l)));
+      } catch (err) {
+        if (err.message !== 'Unauthorized') console.error(err);
+      }
+    }
+
+    async function viewSplitMembers(listingId, btnEl) {
+      const container = document.getElementById(`members-${listingId}`);
+      if (!container) return;
+      if (!container.classList.contains('hidden')) {
+        container.classList.add('hidden');
+        btnEl.innerText = 'See Who Joined';
+        return;
+      }
+      btnEl.innerText = 'Loading...';
+      try {
+        const res = await apiFetch(`${API_URL}/listings/${listingId}/joiners`);
+        if (!res.ok) { btnEl.innerText = 'See Who Joined'; return; }
+        const members = await res.json();
+        if (members.length === 0) {
+          container.innerHTML = '<p class="text-[10px] text-slate-400 italic text-center py-2">No one has joined yet.</p>';
+        } else {
+          container.innerHTML = members.map((m, i) => `
+            <div class="flex items-center gap-3 py-2 ${i > 0 ? 'border-t border-slate-100 dark:border-slate-800' : ''}">
+              <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                ${m.name ? m.name[0].toUpperCase() : '?'}
+              </div>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">${m.name}</p>
+                <p class="text-[10px] text-slate-400 truncate">${m.email}</p>
+              </div>
+              <span class="text-[9px] text-slate-400 shrink-0 ml-auto">${new Date(m.joined_at).toLocaleDateString()}</span>
+            </div>
+          `).join('');
+        }
+        container.classList.remove('hidden');
+        btnEl.innerText = 'Hide Members';
+      } catch (err) {
+        btnEl.innerText = 'See Who Joined';
+        console.error(err);
+      }
+    }
+
+    function createCreatedSplitHTML(l) {
+      const details = l.details || {};
+      const splitName = details.split_name || l.type.replace(/_/g, ' ');
+      const metaParts = [];
+      if (details.split_date) metaParts.push(details.split_date);
+      if (details.split_time) metaParts.push(details.split_time);
+      if (details.split_place) metaParts.push(details.split_place);
+      const meta = metaParts.length > 0 ? metaParts.join(' · ') : (l.location || 'No date/time/place set');
+
+      // Parse capacity: e.g. "9 slots" or "9"
+      const capacityNum = parseFloat(l.capacity) || 0;
+      const isActive = capacityNum > 0 && l.approved;
+      const statusColor = isActive ? 'bg-emerald-500' : 'bg-slate-400';
+      const statusLabel = isActive ? 'Open' : (l.approved ? 'Full' : 'Pending');
+
+      return `
+        <div class="split-item group bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer" onclick="this.classList.toggle('expanded')">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-2 h-2 rounded-full ${statusColor} shrink-0"></div>
+              <div class="truncate">
+                <h4 class="font-bold text-sm truncate">${splitName}</h4>
+                <p class="text-[10px] text-slate-500 font-medium truncate">${meta}</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-400 group-[.expanded]:rotate-180 transition-transform">expand_more</span>
+          </div>
+
+          <div class="split-expanded-content mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3" onclick="event.stopPropagation()">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Status</span>
+              <span class="font-bold capitalize px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}">${statusLabel}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Slots Left</span>
+              <span class="font-bold">${l.capacity}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Price / Slot</span>
+              <span class="font-bold">₹${parseFloat(l.price_per_unit || 0).toFixed(2)}</span>
+            </div>
+            <button onclick="viewSplitMembers('${l.id}', this)" class="w-full py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-bold hover:bg-primary/20 transition-colors">See Who Joined</button>
+            <div id="members-${l.id}" class="hidden mt-2 bg-white dark:bg-slate-800 rounded-xl p-3 space-y-1"></div>
+          </div>
+        </div>
+      `;
     }
 
     function createTrackingItemHTML(b) {
@@ -1482,18 +1651,63 @@
         detailsLabel.innerText = 'What are you splitting?';
         detailsInp.placeholder = 'e.g. Weekly Turf Booking at Mumbai';
         categoryFields.innerHTML = `
-                <div class="mb-4">
+                <div class="mb-4 hidden">
                   <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category</label>
                   <select id="customType" required class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm">
                       <option value="sports">Sports & Recreation</option>
                       <option value="travel">Travel Share</option>
-                      <option value="other">Other Community Split</option>
+                      <option value="other" selected>Other Community Split</option>
                   </select>
                 </div>
                 <div class="mb-4" id="customTotalCostContainer">
                   <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Price (₹)</label>
                   <input type="number" id="splitTotalCost" min="1" step="0.01" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm" placeholder="e.g. 5000.00">
                 </div>
+
+                <div class="space-y-3 mb-4">
+                  <!-- Date Toggle -->
+                  <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                      <div>
+                          <h5 class="text-sm font-bold text-slate-900 dark:text-white">Add Date</h5>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" id="splitDateEnabled" class="sr-only peer" onchange="document.getElementById('splitDateInputContainer').classList.toggle('hidden', !this.checked)">
+                          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                      </label>
+                  </div>
+                  <div id="splitDateInputContainer" class="hidden mb-2">
+                      <input type="date" id="splitDateVal" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm">
+                  </div>
+
+                  <!-- Time Toggle -->
+                  <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                      <div>
+                          <h5 class="text-sm font-bold text-slate-900 dark:text-white">Add Time</h5>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" id="splitTimeEnabled" class="sr-only peer" onchange="document.getElementById('splitTimeInputContainer').classList.toggle('hidden', !this.checked)">
+                          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                      </label>
+                  </div>
+                  <div id="splitTimeInputContainer" class="hidden mb-2">
+                      <input type="time" id="splitTimeVal" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm">
+                  </div>
+
+                  <!-- Place Toggle -->
+                  <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                      <div>
+                          <h5 class="text-sm font-bold text-slate-900 dark:text-white">Add Place</h5>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" id="splitPlaceEnabled" class="sr-only peer" onchange="document.getElementById('splitPlaceInputContainer').classList.toggle('hidden', !this.checked)">
+                          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                      </label>
+                  </div>
+                  <div id="splitPlaceInputContainer" class="hidden mb-2">
+                      <input type="text" id="splitPlaceVal" placeholder="e.g. Mumbai Turf" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm">
+                  </div>
+                </div>
+
                 <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl mb-4">
                     <div>
                         <h5 class="text-sm font-bold text-slate-900 dark:text-white">Require Payment via UNIO</h5>
@@ -1573,18 +1787,42 @@
       btn.disabled = true;
 
       const type = document.getElementById('splitType').value;
+      const isCustom = type !== 'digital_subscriptions';
+      
+      let customDate = 'Recurring';
+      let customTimeStr = '';
+      if (isCustom) {
+        if (document.getElementById('splitDateEnabled') && document.getElementById('splitDateEnabled').checked && document.getElementById('splitDateVal').value) {
+            customDate = document.getElementById('splitDateVal').value;
+        }
+        if (document.getElementById('splitTimeEnabled') && document.getElementById('splitTimeEnabled').checked && document.getElementById('splitTimeVal').value) {
+            customTimeStr = document.getElementById('splitTimeVal').value;
+        }
+        
+        if (customDate !== 'Recurring' || customTimeStr !== '') {
+            let combined = customDate === 'Recurring' ? '' : customDate;
+            if (customTimeStr) combined += (combined ? ' at ' : 'At ') + customTimeStr;
+            customDate = combined.trim();
+        }
+      }
+
+      let customPlace = 'Local/Community';
+      if (isCustom && document.getElementById('splitPlaceEnabled') && document.getElementById('splitPlaceEnabled').checked && document.getElementById('splitPlaceVal').value) {
+          customPlace = document.getElementById('splitPlaceVal').value;
+      }
+
       const formData = {
         type: type === 'digital_subscriptions' ? 'digital_subscriptions' : document.getElementById('customType').value,
         capacity: document.getElementById('splitCapacity').value + ' slots',
         price_per_unit: document.getElementById('splitPrice').value,
         details: {
-          app: type === 'digital_subscriptions' ? document.getElementById('splitService').value : document.getElementById('splitDetails').value,
+          app: type === 'digital_subscriptions' ? document.getElementById('splitService').value : document.getElementById('splitName').value,
           info: document.getElementById('splitDetails').value,
           total_cost: document.getElementById('splitTotalCost') ? document.getElementById('splitTotalCost').value : null,
           payment_enabled: document.getElementById('splitPaymentEnabled') ? document.getElementById('splitPaymentEnabled').checked : true
         },
-        location: type === 'digital_subscriptions' ? 'Remote' : 'Local/Community',
-        date: 'Recurring',
+        location: type === 'digital_subscriptions' ? 'Remote' : customPlace,
+        date: type === 'digital_subscriptions' ? 'Recurring' : customDate,
         approved: true
       };
 

@@ -195,6 +195,35 @@ router.get('/my-splits', authenticateToken, async (req, res) => {
     }
 });
 
+// Get members of a specific split (creator only)
+router.get('/:splitId/members', authenticateToken, async (req, res) => {
+    try {
+        const { splitId } = req.params;
+        const userId = req.user.id;
+
+        // Verify user is split creator
+        const splitRes = await pool.query(
+            'SELECT creator_id FROM split_requests WHERE id = $1',
+            [splitId]
+        );
+        if (splitRes.rows.length === 0) return res.status(404).json({ message: "Split not found" });
+        if (splitRes.rows[0].creator_id !== userId) return res.status(403).json({ message: "Only split creator can view members" });
+
+        const membersRes = await pool.query(
+            `SELECT u.id, u.name, u.email, sm.joined_at, sm.terms
+             FROM split_members sm
+             JOIN users u ON sm.user_id = u.id
+             WHERE sm.split_id = $1
+             ORDER BY sm.joined_at ASC`,
+            [splitId]
+        );
+        res.json(membersRes.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 // Get payment history for a specific split (for creator)
 router.get('/:splitId/payment-history', authenticateToken, async (req, res) => {
     try {

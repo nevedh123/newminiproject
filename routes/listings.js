@@ -115,8 +115,33 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Get all users who booked a listing (Provider / Creator only)
+router.get('/:id/joiners', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const providerId = req.user.id;
 
-// Update current location of a cargo split (Provider Only)
+        // Verify ownership
+        const listingCheck = await pool.query('SELECT provider_id FROM listings WHERE id = $1', [id]);
+        if (listingCheck.rows.length === 0) return res.status(404).json({ message: 'Listing not found' });
+        if (listingCheck.rows[0].provider_id !== providerId) return res.status(403).json({ message: 'Not authorized' });
+
+        const result = await pool.query(
+            `SELECT u.id, u.name, u.email, b.quantity, b.status, b.created_at as joined_at
+             FROM bookings b
+             JOIN users u ON b.user_id = u.id
+             WHERE b.listing_id = $1
+             ORDER BY b.created_at ASC`,
+            [id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+
 router.put('/:id/location', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;

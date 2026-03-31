@@ -1,4 +1,12 @@
-const API_URL = '/api/auth';
+let BASE_URL = '';
+if (window.location.protocol === 'file:') {
+    BASE_URL = 'http://localhost:3000';
+} else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (window.location.port && window.location.port !== '3000') {
+        BASE_URL = 'http://localhost:3000';
+    }
+}
+const API_URL = `${BASE_URL}/api/auth`;
 let isLogin = true;
 
 function toggleAuthMode() {
