@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>UNIO Class Diagram</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { background: white; margin: 40px; font-family: Arial, sans-serif; }
+h1 { text-align: center; color: #1e3a5f; margin-bottom: 30px; }
+.mermaid { display: flex; justify-content: center; }
+</style>
+</head><body>
+<h1>UNIO Platform — Class Diagram</h1>
+<div class="mermaid">
+classDiagram
+    class User {
+        +int id
+        +string name
+        +string email
+        +string password
+        +string role
+        +Date created_at
+        +register() void
+        +login() JWT
+        +getProfile() Object
+    }
+
+    class Listing {
+        +int id
+        +int provider_id
+        +string type
+        +string capacity
+        +float price_per_unit
+        +bool approved
+        +float base_cost
+        +create() Listing
+        +approve() void
+        +findAll() List
+    }
+
+    class Booking {
+        +int id
+        +int user_id
+        +int listing_id
+        +string status
+        +string payment_status
+        +float total_price
+        +bool is_priority
+        +string eta
+        +create() Booking
+        +updateStatus(s) void
+        +cancel(reason) void
+    }
+
+    class Payment {
+        +int id
+        +int booking_id
+        +int user_id
+        +float amount
+        +string method
+        +string confirmation_id
+        +string status
+        +initiate() Payment
+        +confirm() void
+        +getHistory() List
+    }
+
+    class SplitRequest {
+        +int id
+        +int item_id
+        +int creator_id
+        +int total_slots
+        +int filled_slots
+        +float price_per_person
+        +string status
+        +create() SplitRequest
+        +join(userId) void
+        +close() void
+    }
+
+    class MarketplaceItem {
+        +int id
+        +int seller_id
+        +string type
+        +string title
+        +float price
+        +float starting_bid
+        +float current_highest_bid
+        +string status
+        +post() void
+        +placeBid(amount, userId) void
+        +approve() void
+    }
+
+    class Notification {
+        +int id
+        +int user_id
+        +string type
+        +string content
+        +bool is_read
+        +create() void
+        +markRead() void
+    }
+
+    class TrackingUpdate {
+        +int id
+        +int listing_id
+        +string location_name
+        +float lat
+        +float lng
+        +bool is_confirmed
+        +push() void
+        +confirm() void
+    }
+
+    User "1" --> "*" Listing : provides
+    User "1" --> "*" Booking : makes
+    Listing "1" --> "*" Booking : fulfills
+    Listing "1" --> "*" TrackingUpdate : tracked by
+    Booking "1" --> "1" Payment : paid via
+    User "1" --> "*" SplitRequest : creates
+    SplitRequest "*" --> "*" User : joined by
+    User "1" --> "*" MarketplaceItem : sells
+    MarketplaceItem "1" --> "*" SplitRequest : split via
+    User "1" --> "*" Notification : receives
+</div>
+<script>mermaid.initialize({startOnLoad:true, theme:'default'});</script>
+</body></html>

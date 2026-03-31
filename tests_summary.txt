@@ -1,0 +1,39 @@
+Suite: C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\tests\ui.spec.js
+ -> TC-15: Should display login page correctly
+ReferenceError: cy is not defined
+    at Object.cy (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\tests\ui.spec.js:3:9)
+    at Promise.finally.completed (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+    at _callCircusHook (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:976:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:941:5)
+    at C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at run (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+    at jestAdapter (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:275:16)
+    at runTest (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:343:7)
+    at Object.worker (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:497:12)
+
+ -> TC-17: Should show error for invalid inputs
+ReferenceError: cy is not defined
+    at Object.cy (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\tests\ui.spec.js:3:9)
+    at Promise.finally.completed (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+    at _callCircusHook (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:976:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:941:5)
+    at C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at run (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+    at jestAdapter (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:275:16)
+    at runTest (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:343:7)
+    at Object.worker (C:\Users\Neved\Downloads\latest (1)\newmini (3)\newmini\node_modules\jest-runner\build\testWorker.js:497:12)
+

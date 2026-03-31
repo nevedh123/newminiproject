@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIO Detailed System Architecture</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f8; padding: 40px; color: #333; }
+        h1 { text-align: center; color: #1e293b; margin-bottom: 50px; font-size: 2.5rem; }
+        h2 { border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; margin-top: 50px; color: #475569; }
+        
+        /* Container for Diagram 1 (API Layout) */
+        .api-diagram {
+            background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+            position: relative;
+        }
+        
+        .header-bar {
+            grid-column: 1 / -1; background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1;
+            padding: 15px; text-align: center; font-weight: bold; border-radius: 8px; font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .module-card {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;
+        }
+        .module-title { font-weight: bold; text-align: center; margin-bottom: 15px; color: #0f172a; font-size: 1.1rem; }
+        
+        .endpoint {
+            border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .endpoint.auth { background: #dbeafe; border-color: #bfdbfe; }
+        .endpoint.public { background: #dcfce7; border-color: #bbf7d0; }
+        .endpoint.protected { background: #ffedd5; border-color: #fed7aa; }
+        
+        .ep-title { font-weight: bold; margin-bottom: 5px; color: #1e293b; display: flex; justify-content: space-between; }
+        .ep-method { color: #2563eb; }
+        .ep-method.post { color: #059669; }
+        .ep-method.get { color: #2563eb; }
+        .ep-method.put { color: #d97706; }
+        .ep-desc { color: #475569; font-size: 0.85rem; }
+
+        /* Container for Diagram 2 (Layered Architecture) */
+        .layer-diagram {
+            background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; gap: 30px;
+        }
+
+        .high-level {
+            display: flex; justify-content: space-between; align-items: center; gap: 20px;
+        }
+        
+        .hl-box {
+            flex: 1; padding: 20px; border-radius: 10px; border: 2px solid; text-align: center; font-weight: bold;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .hl-client { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+        .hl-server { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .hl-db { background: #faf5ff; border-color: #e9d5ff; color: #7e22ce; }
+        
+        .layer-grid {
+            display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 20px;
+        }
+
+        .layer-box {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;
+        }
+        .layer-title { font-weight: bold; font-size: 1.1rem; color: #334155; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; text-transform: uppercase;}
+        
+        ul.feature-list { padding-left: 20px; font-size: 0.95rem; color: #475569; }
+        ul.feature-list li { margin-bottom: 8px; }
+        
+        .sub-module {
+            background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px; margin-bottom: 10px; text-align: center;
+        }
+        .db-table {
+            background: white; border: 1px solid #e9d5ff; border-radius: 6px; margin-bottom: 10px; overflow: hidden;
+        }
+        .db-table-head { background: #f3e8ff; padding: 5px 10px; font-weight: bold; font-size: 0.9rem; color: #6b21a8; text-align: center; border-bottom: 1px solid #e9d5ff;}
+        .db-table-body { padding: 10px; font-size: 0.8rem; color: #475569; }
+        
+    </style>
+</head>
+<body>
+
+    <h1>UNIO Platform - Detailed Architecture</h1>
+
+    <h2>1. API Routing & Security Architecture</h2>
+    <div class="api-diagram">
+        <div class="header-bar">
+            HTTP Header: Authorization: Bearer &lt;JWT_TOKEN&gt;
+        </div>
+
+        <!-- Authentication -->
+        <div class="module-card">
+            <div class="module-title">Authentication (/api/auth)</div>
+            <div class="endpoint auth">
+                <div class="ep-title"><span class="ep-method post">POST</span> /register</div>
+                <div class="ep-desc">Expects {name, email, password, role}</div>
+            </div>
+            <div class="endpoint auth">
+                <div class="ep-title"><span class="ep-method post">POST</span> /login</div>
+                <div class="ep-desc">Expects {email, password} <br/>-> Returns JWT</div>
+            </div>
+            <div class="endpoint protected">
+                <div class="ep-title"><span class="ep-method get">GET</span> /me <span>🔒</span></div>
+                <div class="ep-desc">Protected (All Roles) <br/>-> Fetches current user info</div>
+            </div>
+        </div>
+
+        <!-- Listings Management -->
+        <div class="module-card">
+            <div class="module-title">Listings Management (/api/listings)</div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /listings <span>🌐</span></div>
+                <div class="ep-desc">Publicly fetches all approved listings</div>
+            </div>
+            <div class="endpoint protected">
+                <div class="ep-title"><span class="ep-method post">POST</span> /listings <span>🔒</span></div>
+                <div class="ep-desc">Protected (Provider) <br/>-> Expects {type, capacity, price, location}</div>
+            </div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /listings/{id} <span>🌐</span></div>
+                <div class="ep-desc">Publicly fetches details of a single listing</div>
+            </div>
+            <div class="endpoint protected">
+                <div class="ep-title"><span class="ep-method put">PUT</span> /listings/{id} <span>🔒</span></div>
+                <div class="ep-desc">Protected (Provider) <br/>-> Updates existing listing payload</div>
+            </div>
+        </div>
+
+        <!-- Bookings Management -->
+        <div class="module-card">
+            <div class="module-title">Bookings Management (/api/bookings)</div>
+            <div class="endpoint auth">
+                <div class="ep-title"><span class="ep-method post">POST</span> /bookings <span>🔒</span></div>
+                <div class="ep-desc">Protected (Consumer) <br/>-> Expects {listing_id, quantity}</div>
+            </div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /bookings <span>🔒</span></div>
+                <div class="ep-desc">Protected (Consumer) <br/>-> Fetches historical consumer bookings</div>
+            </div>
+            <div class="endpoint protected">
+                <div class="ep-title"><span class="ep-method put">PUT</span> /bookings/{id}/status <span>🔒</span></div>
+                <div class="ep-desc">Protected (Admin/System) <br/>-> Confirms or cancels booking</div>
+            </div>
+        </div>
+
+        <!-- Custom Splits -->
+        <div class="module-card">
+            <div class="module-title">Community Splits (/api/splits)</div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /splits <span>🔒</span></div>
+                <div class="ep-desc">Protected (Consumer) <br/>Fetches open community room splits</div>
+            </div>
+            <div class="endpoint auth">
+                <div class="ep-title"><span class="ep-method post">POST</span> /splits/{id}/join <span>🔒</span></div>
+                <div class="ep-desc">Adds user to split & calculates fractional share</div>
+            </div>
+        </div>
+
+        <!-- Payments Emulator -->
+        <div class="module-card">
+            <div class="module-title">Payment Simulator (/api/payments)</div>
+            <div class="endpoint auth">
+                <div class="ep-title"><span class="ep-method post">POST</span> /initiate <span>🔒</span></div>
+                <div class="ep-desc">Generates internal IP dynamic QR Code</div>
+            </div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /scan/{payId}/{confId} <span>🌐</span></div>
+                <div class="ep-desc">Simulates mobile device scanning & approval</div>
+            </div>
+        </div>
+
+        <!-- Admin & Analytics -->
+        <div class="module-card">
+            <div class="module-title">Admin & Analytics (/api/admin)</div>
+            <div class="endpoint public">
+                <div class="ep-title"><span class="ep-method get">GET</span> /stats/dashboard <span>🔒</span></div>
+                <div class="ep-desc">Protected (Admin) <br/>-> Fetches total marketplace metrics</div>
+            </div>
+            <div class="endpoint protected">
+                <div class="ep-title"><span class="ep-method put">PUT</span> /listings/{id}/status <span>🔒</span></div>
+                <div class="ep-desc">Protected (Admin) <br/>-> Approves/Rejects pending resources</div>
+            </div>
+        </div>
+    </div>
+
+    <h2>2. Component & Layer Breakdown</h2>
+    <div class="layer-diagram">
+        
+        <!-- High Level Flow -->
+        <div class="high-level">
+            <div class="hl-box hl-client">
+                <div style="font-size: 1.2rem;">[Client / Browser]</div>
+                <div style="font-size: 0.9rem; font-weight: normal;">HTML5 / TailwindCSS / Vanilla JS</div>
+            </div>
+            <div style="font-weight: bold; color: #64748b;">&#8596; HTTP/JSON over REST API &#8596;</div>
+            <div class="hl-box hl-server">
+                <div style="font-size: 1.2rem;">[Web Server]</div>
+                <div style="font-size: 0.9rem; font-weight: normal;">Node.js / Express.js</div>
+            </div>
+            <div style="font-weight: bold; color: #64748b;">&#8596;</div>
+            <div class="hl-box hl-db">
+                <div style="font-size: 1.2rem;">[Database]</div>
+                <div style="font-size: 0.9rem; font-weight: normal;">PostgreSQL Database</div>
+            </div>
+        </div>
+
+        <!-- Layer Grid -->
+        <div class="layer-grid">
+            
+            <!-- Presentation Layer -->
+            <div class="layer-box">
+                <div class="layer-title">Presentation Layer (Frontend)</div>
+                <div style="font-weight: bold; color: #0284c7; margin-bottom: 15px;">HTML5 &bull; Tailwind CSS &bull; JS</div>
+                <ul class="feature-list">
+                    <li>Strictly Client-side rendering</li>
+                    <li>Utilizes native <code>fetch()</code> for APIs</li>
+                    <li>JWT stored in LocalStorage</li>
+                </ul>
+                <div style="margin-top: 20px; font-weight: bold; font-size: 0.95rem; color: #334155;">Key Views:</div>
+                <ul class="feature-list" style="list-style-type: square;">
+                    <li><b>Consumer Dashboard</b><br/><span style="font-size:0.8rem; color:#94a3b8;">consumer.html</span></li>
+                    <li><b>Provider Dashboard</b><br/><span style="font-size:0.8rem; color:#94a3b8;">provider.html</span></li>
+                    <li><b>Admin Dashboard</b><br/><span style="font-size:0.8rem; color:#94a3b8;">admin.html</span></li>
+                    <li><b>Payment QR Interface</b><br/><span style="font-size:0.8rem; color:#94a3b8;">payment-scan.html</span></li>
+                </ul>
+            </div>
+
+            <!-- Application Logic Layer -->
+            <div class="layer-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div class="layer-title" style="color: #15803d; border-bottom-color: #bbf7d0;">Application Logic Layer (Backend)</div>
+                <div style="text-align: center; margin-bottom: 15px; font-weight: bold; color: #166534;">Node.js Core Modules</div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #166534; margin-bottom: 5px;">Middleware</div>
+                        <div class="sub-module" style="background: #dcfce7; font-size: 0.85rem;">
+                            JWT Verification<br/>Role-Based Access Control
+                        </div>
+                    </div>
+                    <div style="flex: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="sub-module"><b>Auth Server</b><br/><span style="font-size:0.8rem; color:#64748b;">bcryptjs hasher</span></div>
+                        <div class="sub-module"><b>Listing Engine</b><br/><span style="font-size:0.8rem; color:#64748b;">Resource state machine</span></div>
+                        <div class="sub-module"><b>Booking Engine</b><br/><span style="font-size:0.8rem; color:#64748b;">Fractional logic</span></div>
+                        <div class="sub-module"><b>Payment Simulator</b><br/><span style="font-size:0.8rem; color:#64748b;">QR IP Generator</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Layer -->
+            <div class="layer-box" style="background: #faf5ff; border-color: #e9d5ff;">
+                <div class="layer-title" style="color: #6b21a8; border-bottom-color: #e9d5ff;">Data Layer (Database)</div>
+                
+                <div class="db-table">
+                    <div class="db-table-head">Users</div>
+                    <div class="db-table-body">PK: id <br/> name, email, role, password</div>
+                </div>
+                
+                <div style="text-align: center; color: #a855f7; font-size: 1.2rem; line-height: 0.5;">&#8595;</div>
+
+                <div class="db-table">
+                    <div class="db-table-head">Listings</div>
+                    <div class="db-table-body">PK: id <br/> FK: provider_id <br/> <i>details (JSONB)</i></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; padding: 0 40px; color: #a855f7; font-size: 1.2rem; line-height: 0.5;">
+                    <div>&#8601;</div><div>&#8600;</div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="db-table" style="flex: 1;">
+                        <div class="db-table-head">Bookings</div>
+                        <div class="db-table-body">PK: id <br/> FK: user_id <br/> FK: listing_id</div>
+                    </div>
+                    <div class="db-table" style="flex: 1;">
+                        <div class="db-table-head">Splits</div>
+                        <div class="db-table-body">PK: id <br/> FK: creator_id</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

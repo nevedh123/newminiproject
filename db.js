@@ -1,13 +1,30 @@
+/* =========================================
+   DB.JS - THE DATABASE BLUEPRINT & CONNECTION (THE KITCHEN BACKEND)
+   =========================================
+   This file connects node.js to PostgreSQL using the 'pg' module.
+   When the server starts (via server.js calling initDb()), it checks
+   if tables like Users, Listings, Bookings exist. If they don't,
+   it runs these SQL queries to CREATE them.
+
+   If a teacher asks: "Add a phone number to users"
+   You can add \`phone_number VARCHAR(15)\` inside the users CREATE TABLE block below.
+========================================= */
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
+// Here we create the connection POOL. It grabs details from the .env file (passwords).
+// In production (Render/Vercel), it uses process.env.DATABASE_URL
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL }
+    : {
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT,
+      }
+);
 
 const initDb = async () => {
   try {
@@ -19,9 +36,13 @@ const initDb = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'consumer',
+        is_banned BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Migration: add is_banned to users if missing
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;`);
 
     // Listings Table
     await pool.query(`
@@ -42,6 +63,7 @@ const initDb = async () => {
     // Migration: add missing columns to listings
     await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS base_cost DECIMAL(10, 2) DEFAULT 0.00;`);
     await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT FALSE;`);
+    await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';`);
 
     // Bookings Table
     await pool.query(`
@@ -65,6 +87,7 @@ const initDb = async () => {
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_priority BOOLEAN DEFAULT FALSE;`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS eta VARCHAR(255);`);
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS details JSONB;`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
 
     // Feedback Table
@@ -195,6 +218,29 @@ const initDb = async () => {
       );
     `);
 
+    // Friend Chats Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS friend_chats (
+        id SERIAL PRIMARY KEY,
+        user_id1 INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        user_id2 INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id1, user_id2)
+      );
+    `);
+
+    // Friend Messages Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS friend_messages (
+        id SERIAL PRIMARY KEY,
+        chat_id INTEGER REFERENCES friend_chats(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Notifications Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
@@ -226,6 +272,11 @@ const initDb = async () => {
     // Add payment_required column if missing
     await pool.query(`
       ALTER TABLE split_requests ADD COLUMN IF NOT EXISTS payment_required BOOLEAN DEFAULT FALSE;
+    `);
+
+    // Add current_location to listings for split tracking
+    await pool.query(`
+      ALTER TABLE listings ADD COLUMN IF NOT EXISTS current_location TEXT;
     `);
 
     // Marketplace Split Members

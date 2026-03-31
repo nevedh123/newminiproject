@@ -192,12 +192,6 @@
               and manage your shared resources.</p>
           </div>
           <div class="flex gap-3">
-
-            <a href="booking.html"
-              class="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:shadow-lg hover:shadow-primary/20 transition-all">
-              <span class="material-symbols-outlined text-lg">add</span>
-              Quick Booking
-            </a>
           </div>
         </div>
 
@@ -263,11 +257,6 @@
 
 
 
-            <div class="ml-auto flex items-center gap-4 pl-4 border-l border-slate-200 dark:border-slate-800"
-              id="categoryActions">
-              <button class="text-sm font-semibold text-primary hover:underline whitespace-nowrap"
-                onclick="window.location.href='cargo.html'">Browse Map</button>
-            </div>
           </div>
 
           <!-- Separator & Slider Container -->
@@ -322,12 +311,14 @@
       <aside style="width:360px; min-width:360px; flex-shrink:0; flex-grow:0; align-self:stretch;">
         <div
           class="bg-white dark:bg-slate-800 rounded-3xl p-6 card-shadow border border-slate-100 dark:border-slate-800 sticky top-28 h-[calc(100vh-140px)] flex flex-col">
-          
+
           <!-- Tabs for Sidebar -->
           <div class="flex gap-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-2">
-            <button onclick="switchSidebarTab('splits')" id="tab-side-splits" class="text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2">Splits</button>
-            <button onclick="switchSidebarTab('tracking')" id="tab-side-tracking" class="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1">
-              Tracking 
+            <button onclick="switchSidebarTab('splits')" id="tab-side-splits"
+              class="text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2">Splits</button>
+            <button onclick="switchSidebarTab('tracking')" id="tab-side-tracking"
+              class="text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1">
+              Tracking
               <span id="trackingDot" class="w-1.5 h-1.5 bg-red-500 rounded-full hidden"></span>
             </button>
           </div>
@@ -358,16 +349,17 @@
 
           <!-- Live Tracking Container -->
           <div id="side-tracking-content" class="hidden flex-col flex-grow overflow-hidden">
-             <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-slate-900 dark:text-slate-100 text-lg">Order Tracking</h3>
-                <div class="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full">
-                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> LIVE
-                </div>
-             </div>
-             
-             <div class="flex-grow overflow-y-auto sidebar-scroll pr-2 space-y-6" id="liveTrackingList">
-                <div class="text-center py-12 text-slate-500 text-sm italic">No active orders to track.</div>
-             </div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 dark:text-slate-100 text-lg">Order Tracking</h3>
+              <div
+                class="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> LIVE
+              </div>
+            </div>
+
+            <div class="flex-grow overflow-y-auto sidebar-scroll pr-2 space-y-6" id="liveTrackingList">
+              <div class="text-center py-12 text-slate-500 text-sm italic">No active orders to track.</div>
+            </div>
           </div>
         </div>
       </aside>
@@ -547,7 +539,7 @@
 
       <div class="p-4 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700">
         <div id="aiOptionsArea" class="flex flex-col gap-2">
-            <!-- Dynamic option buttons will appear here -->
+          <!-- Dynamic option buttons will appear here -->
         </div>
       </div>
     </div>
@@ -800,7 +792,7 @@
     let socket;
     function initRealTime(userId) {
       socket = io();
-      
+
       socket.on('connect', () => {
         console.log('[SOCKET] Connected as', socket.id);
         socket.emit('join', userId);
@@ -810,7 +802,7 @@
         console.log('[SOCKET] Order Update Received:', data);
         showUpdateAlert(data);
         refreshDashboard();
-        
+
         // Highlight tracking tab
         document.getElementById('trackingDot').classList.remove('hidden');
       });
@@ -848,10 +840,12 @@
         trackingBtn.className = 'text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1';
         splitsContent.classList.remove('hidden');
         trackingContent.classList.add('hidden');
+        trackingContent.classList.remove('flex');
       } else {
         trackingBtn.className = 'text-xs font-black uppercase tracking-wider text-primary border-b-2 border-primary pb-2';
         splitsBtn.className = 'text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 pb-2 flex items-center gap-1';
         trackingContent.classList.remove('hidden');
+        trackingContent.classList.add('flex');
         splitsContent.classList.add('hidden');
         document.getElementById('trackingDot').classList.add('hidden');
       }
@@ -881,6 +875,7 @@
         allListings.forEach(l => {
           if (!l.approved) return;
           if (l.provider_id === user.id) return; // Hide self-created splits
+          if (parseFloat(l.capacity) <= 0) return; // Hide filled out listings
 
           const html = createListingHTML(l);
           if (['cargo_split', 'cold_storage', 'warehouse'].includes(l.type)) {
@@ -974,15 +969,27 @@
         let trackingCount = 0;
 
         bookings.forEach(b => {
+          const requiresPayment = parseFloat(b.total_price) > 0 && b.details?.payment_enabled !== false;
+          if (requiresPayment && b.payment_status === 'unpaid') {
+            return; // Ignore unpaid bookings completely
+          }
+
+          // Show cancelled bookings (provider approved) so John can see feedback
+          if (b.status === 'cancelled' && b.cancellation_status === 'approved') {
+            activeCount++;
+            cont.insertAdjacentHTML('beforeend', createJoinedSplitHTML(b));
+            return;
+          }
+
           if (b.status !== 'cancelled') {
             // If it's a standard split or a confirmed booking we treat as "Split Membership"
             if (b.entry_type === 'split' || b.status === 'confirmed') {
               activeCount++;
               cont.insertAdjacentHTML('beforeend', createJoinedSplitHTML(b));
-            } 
-            
-            // If it has tracking statuses, show in Tracking Tab
-            if (['processing', 'shipped', 'out_for_delivery', 'delivered'].includes(b.status)) {
+            }
+
+            // Show cargo_split bookings in the Tracking tab
+            if (b.entry_type === 'booking' && ['cargo_split', 'cold_storage', 'warehouse'].includes(b.type)) {
               trackingCount++;
               trackingCont.insertAdjacentHTML('beforeend', createTrackingItemHTML(b));
             }
@@ -993,17 +1000,39 @@
         if (activeCount === 0) cont.innerHTML = '<p class="text-center py-12 text-slate-500 text-sm">No joined splits yet.</p>';
         if (trackingCount === 0) trackingCont.innerHTML = '<div class="text-center py-12 text-slate-500 text-sm italic">No active orders to track.</div>';
 
+        // Show tracking dot if there are trackable splits
+        if (trackingCount > 0) {
+          document.getElementById('trackingDot').classList.remove('hidden');
+        }
+
       } catch (err) {
         if (err.message !== 'Unauthorized') console.error(err);
       }
     }
 
     function createJoinedSplitHTML(b) {
-      const statusColor = b.status === 'confirmed' ? 'bg-emerald-500' : 'bg-amber-500';
+      const isCancelApproved = b.status === 'cancelled' && b.cancellation_status === 'approved';
+      const isCancelDenied = b.cancellation_status === 'denied';
       const isRequested = b.cancellation_status === 'requested';
+      const statusColor = isCancelApproved ? 'bg-slate-400' : (b.status === 'confirmed' ? 'bg-emerald-500' : 'bg-amber-500');
+
+      let cancelSection;
+      if (isCancelApproved) {
+        cancelSection = `<div class="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-xl text-[10px] font-bold text-center flex items-center justify-center gap-1">
+          <span class="material-icons text-sm">check_circle</span> Cancellation Approved
+        </div>`;
+      } else if (isRequested) {
+        cancelSection = `<div class="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl text-[10px] font-bold text-center">Cancellation Requested</div>`;
+      } else if (isCancelDenied) {
+        cancelSection = `
+          <div class="bg-red-50 dark:bg-red-900/20 text-red-500 p-2 rounded-xl text-[10px] font-bold text-center mb-1">Request Denied</div>
+          <button onclick="requestCancellation('${b.id}')" class="w-full py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-bold hover:bg-red-100 transition-colors">Request Again</button>`;
+      } else {
+        cancelSection = `<button onclick="requestCancellation('${b.id}')" class="w-full py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-bold hover:bg-red-100 transition-colors">Request Cancellation</button>`;
+      }
 
       return `
-            <div class="split-item group bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer" onclick="this.classList.toggle('expanded')">
+            <div class="split-item group bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border ${isCancelApproved ? 'border-emerald-200 dark:border-emerald-900/40' : 'border-transparent hover:border-slate-200 dark:hover:border-slate-700'} transition-all cursor-pointer" onclick="this.classList.toggle('expanded')">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-2 h-2 rounded-full ${statusColor}"></div>
@@ -1022,84 +1051,75 @@
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500">Date</span>
-                        <span class="font-bold text-primary">${b.date}</span>
+                        <span class="font-bold text-primary">${b.details && b.details.selected_date ? b.details.selected_date : b.date}</span>
                     </div>
-                    ${(b.payment_status === 'unpaid' && parseFloat(b.total_price) > 0 && b.details?.payment_enabled !== false) ? `
-                    <div class="flex justify-between text-xs">
-                        <span class="text-rose-500 font-bold">Amount Due</span>
-                        <span class="font-bold text-rose-500">₹${parseFloat(b.total_price).toFixed(2)}</span>
-                    </div>
-                    <button onclick="payForBooking('${b.id}', ${b.total_price})" class="w-full py-2 bg-primary text-white rounded-xl text-[10px] font-bold hover:bg-primary/90 transition-colors mt-2 mb-2">
-                        Pay Now ⚡
-                    </button>
-                    ` : `
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500">Total Paid</span>
                         <span class="font-bold">₹${parseFloat(b.total_price).toFixed(2)}</span>
                     </div>
-                    `}
                     ${b.confirmation_id ? `
                     <div class="flex justify-between text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mt-2">
                         <span class="text-slate-500 uppercase tracking-wider text-[9px] font-bold self-center">Payment ID</span>
                         <span class="font-mono font-medium text-slate-800 dark:text-slate-300 text-[10px]">${b.confirmation_id}</span>
                     </div>
                     ` : ''}
-                    
-                    ${isRequested ?
-          `<div class="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl text-[10px] font-bold text-center">
-                            Cancellation Requested
-                        </div>` :
-          `<button onclick="requestCancellation('${b.id}')" class="w-full py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-bold hover:bg-red-100 transition-colors">
-                            Request Cancellation
-                        </button>`
-        }
+                    ${cancelSection}
                 </div>
             </div>
         `;
     }
 
     function createTrackingItemHTML(b) {
-      const statuses = ['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'];
-      const currentIndex = statuses.indexOf(b.status);
-      
-      const stepperHTML = statuses.map((s, i) => {
-        let stateClass = '';
-        let icon = 'radio_button_unchecked';
-        if (i < currentIndex) { 
-          stateClass = 'step-completed'; 
-          icon = 'check_circle';
-        } else if (i === currentIndex) {
-          stateClass = 'step-active';
-          icon = 'pending';
-        }
-        
+      // Build the route stops from listing_details
+      const route = b.listing_details?.route_full;
+      const stops = [];
+      if (route) {
+        if (route.start) stops.push(route.start.name);
+        (route.stops || []).forEach(s => { if (s) stops.push(s.name); });
+        if (route.end) stops.push(route.end.name);
+      }
+
+      const currentLoc = b.current_location || (stops.length > 0 ? stops[0] : null);
+      const typeLabel = b.type.replace(/_/g, ' ');
+      const icon = b.type === 'cargo_split' ? 'local_shipping' : (b.type === 'cold_storage' ? 'ac_unit' : 'warehouse');
+      const iconBg = b.type === 'cargo_split' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : (b.type === 'cold_storage' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600');
+
+      const stopsHTML = stops.length > 0 ? stops.map((s, i) => {
+        const isCurrent = s === currentLoc;
+        const isLast = i === stops.length - 1;
+        const dotColor = isCurrent ? 'bg-blue-500 ring-4 ring-blue-200 dark:ring-blue-900/50 scale-125' : (currentLoc && stops.indexOf(currentLoc) > i ? 'bg-slate-400' : 'bg-slate-200 dark:bg-slate-700');
+        const lineColor = currentLoc && stops.indexOf(currentLoc) > i ? 'bg-slate-400' : 'bg-slate-200 dark:bg-slate-700';
+        const labelColor = isCurrent ? 'text-primary font-black' : 'text-slate-500';
         return `
-          <div class="step-item relative flex items-start gap-4 pb-6 last:pb-0 ${stateClass}">
-            <div class="step-line"></div>
-            <div class="step-icon w-8 h-8 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center z-10 transition-all">
-              <span class="material-symbols-outlined text-sm font-bold">${icon}</span>
+          <div class="flex items-center gap-0">
+            <div class="flex flex-col items-center">
+              <div class="w-3 h-3 rounded-full ${dotColor} transition-all duration-300 z-10 relative shrink-0"></div>
+              ${!isLast ? `<div class="w-0.5 h-5 ${lineColor} my-0.5"></div>` : ''}
             </div>
-            <div class="pt-1">
-              <p class="text-[10px] font-black uppercase tracking-widest">${s.replace(/_/g, ' ')}</p>
-              ${i === currentIndex && b.eta ? `<p class="text-[9px] font-bold text-primary mt-0.5">ETA: ${b.eta}</p>` : ''}
-              ${i === currentIndex ? `<p class="text-[8px] text-slate-400 mt-0.5">Last updated: ${new Date(b.updated_at || b.created_at).toLocaleTimeString()}</p>` : ''}
+            <div class="ml-3 ${isLast ? '' : 'mb-5'} ${isCurrent ? '-mt-1' : ''}">
+              <p class="text-[11px] ${labelColor}">${s}</p>
+              ${isCurrent ? '<p class="text-[9px] text-blue-500 font-bold uppercase tracking-wider">← Current Location</p>' : ''}
             </div>
           </div>
         `;
-      }).join('');
+      }).join('') : `<p class="text-[11px] text-slate-400 italic">Route details not available</p>`;
 
       return `
-        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h4 class="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm">${b.type.replace(/_/g, ' ')}</h4>
-              <p class="text-[10px] text-slate-500 font-bold">Order #${b.id}</p>
+        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-lg">${icon}</span>
             </div>
-            <span class="text-[9px] font-black bg-blue-600 text-white px-2 py-1 rounded-lg uppercase">${b.status.replace(/_/g, ' ')}</span>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm capitalize">${typeLabel}</h4>
+              <p class="text-[10px] text-slate-500">Booking #${b.id} · ${b.location || ''}</p>
+            </div>
+            ${currentLoc ? `<span class="text-[9px] font-black bg-blue-600 text-white px-2 py-1 rounded-lg flex items-center gap-1">
+              <span class="material-icons text-xs">location_on</span> ${currentLoc}
+            </span>` : ''}
           </div>
-          
-          <div class="relative pl-1">
-            ${stepperHTML}
+          <div class="pl-1">
+            ${stopsHTML}
           </div>
         </div>
       `;
@@ -1185,14 +1205,14 @@
       const modal = document.getElementById('savingsAnalyticsModal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      
+
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${API_URL}/stats/savings-history`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        
+
         renderSavingsChart(data.graphData);
         renderSavingsHistoryList(data.history);
       } catch (err) {
@@ -1251,7 +1271,7 @@
             y: {
               beginAtZero: true,
               grid: { display: false },
-              ticks: { 
+              ticks: {
                 font: { size: 10, weight: 'bold' },
                 color: '#94A3B8',
                 callback: (val) => '₹' + val
@@ -1259,7 +1279,7 @@
             },
             x: {
               grid: { display: false },
-              ticks: { 
+              ticks: {
                 font: { size: 10, weight: 'bold' },
                 color: '#94A3B8'
               }
@@ -1279,7 +1299,7 @@
       cont.innerHTML = history.map(h => {
         const date = h.date ? new Date(h.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Recurring';
         const typeColor = h.type === 'Split Shared' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20';
-        
+
         return `
           <div class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-primary/30 transition-all">
             <div class="flex items-center gap-4">
@@ -1359,9 +1379,21 @@
               qrCodeData: paymentResult.qrCodeData,
               amount: amount
             }, async (confirmedData) => {
-              alert("Booking and Payment Successful! Reference ID: " + confirmedData.confirmationId);
+              alert("Payment Successful! Reference ID: " + confirmedData.confirmationId);
               closeUniversalBookingModal();
-              refreshDashboard();
+              fetchJoinedSplits();
+              fetchStats();
+            }, async () => {
+              // User closed the modal without paying -> Restore capacity
+              try {
+                await fetch(`${API_URL}/bookings/${booking.id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                console.log('Booking implicitly cancelled and capacity restored.');
+              } catch (e) { console.error('Error auto-cancelling booking:', e); }
+              closeUniversalBookingModal();
+              fetchJoinedSplits();
             });
           } else {
             // Free booking bypasses payment
@@ -1441,31 +1473,9 @@
                 </div>
                 <div class="mb-4">
                   <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Subscription Cost (₹)</label>
-                  <input type="number" id="splitTotalCost" min="1" step="0.01" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm" placeholder="e.g. 1000.00">
+                  <input type="number" id="splitTotalCost" min="1" step="0.01" required class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm" placeholder="e.g. 1000.00">
                 </div>
             `;
-
-
-        const priceContainer = document.getElementById('priceSlotContainer');
-        const capacityGrid = document.getElementById('capacityPriceGrid');
-        priceContainer.classList.remove('hidden');
-        capacityGrid.classList.value = 'grid grid-cols-2 gap-4';
-
-        // Auto-calculate logic
-        document.getElementById('splitPrice').readOnly = true;
-        document.getElementById('splitPrice').classList.add('opacity-70', 'cursor-not-allowed', 'bg-slate-100', 'dark:bg-slate-800');
-        document.getElementById('splitPrice').required = true;
-
-        const autoCalc = () => {
-          const total = parseFloat(document.getElementById('splitTotalCost').value) || 0;
-          const slots = parseInt(document.getElementById('splitCapacity').value) || 1;
-          if (slots > 0) {
-            document.getElementById('splitPrice').value = (Math.ceil((total / slots) * 100) / 100).toFixed(2);
-          }
-        };
-
-        document.getElementById('splitTotalCost').addEventListener('input', autoCalc);
-        document.getElementById('splitCapacity').addEventListener('input', autoCalc);
       } else {
         title.innerText = 'Custom Split Details';
         detailsLabel.innerText = 'What are you splitting?';
@@ -1479,6 +1489,10 @@
                       <option value="other">Other Community Split</option>
                   </select>
                 </div>
+                <div class="mb-4" id="customTotalCostContainer">
+                  <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Price (₹)</label>
+                  <input type="number" id="splitTotalCost" min="1" step="0.01" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm" placeholder="e.g. 5000.00">
+                </div>
                 <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl mb-4">
                     <div>
                         <h5 class="text-sm font-bold text-slate-900 dark:text-white">Require Payment via UNIO</h5>
@@ -1490,31 +1504,57 @@
                     </label>
                 </div>
             `;
+      }
 
-        // Reset readOnly and set listeners for the toggle
-        const priceInp = document.getElementById('splitPrice');
-        const priceContainer = document.getElementById('priceSlotContainer');
-        const capacityGrid = document.getElementById('capacityPriceGrid');
+      const priceInp = document.getElementById('splitPrice');
+      const priceContainer = document.getElementById('priceSlotContainer');
+      const capacityGrid = document.getElementById('capacityPriceGrid');
 
-        priceInp.readOnly = false;
-        priceInp.classList.remove('opacity-70', 'cursor-not-allowed', 'bg-slate-100', 'dark:bg-slate-800');
-        priceInp.value = ''; // clear any auto-calc
+      const autoCalc = () => {
+        const totalInp = document.getElementById('splitTotalCost');
+        if (!totalInp) return;
+        const total = parseFloat(totalInp.value) || 0;
+        const slots = parseInt(document.getElementById('splitCapacity').value) || 1;
+        if (slots > 0) {
+          priceInp.value = (Math.ceil((total / slots) * 100) / 100).toFixed(2);
+        }
+      };
+
+      if (type === 'digital_subscriptions') {
+        priceContainer.classList.remove('hidden');
+        capacityGrid.classList.value = 'grid grid-cols-2 gap-4';
+        priceInp.readOnly = true;
+        priceInp.classList.add('opacity-70', 'cursor-not-allowed', 'bg-slate-100', 'dark:bg-slate-800');
+        priceInp.required = true;
+
+        document.getElementById('splitTotalCost').addEventListener('input', autoCalc);
+        document.getElementById('splitCapacity').addEventListener('input', autoCalc);
+      } else {
         const toggle = document.getElementById('splitPaymentEnabled');
         if (toggle) {
           toggle.addEventListener('change', (e) => {
             if (e.target.checked) {
               priceContainer.classList.remove('hidden');
+              document.getElementById('customTotalCostContainer').classList.remove('hidden');
               capacityGrid.classList.value = 'grid grid-cols-2 gap-4';
               priceInp.required = true;
-              if (priceInp.value === '0') priceInp.value = '';
+              priceInp.readOnly = true;
+              priceInp.classList.add('opacity-70', 'cursor-not-allowed', 'bg-slate-100', 'dark:bg-slate-800');
+              document.getElementById('splitTotalCost').required = true;
+
+              document.getElementById('splitTotalCost').addEventListener('input', autoCalc);
+              document.getElementById('splitCapacity').addEventListener('input', autoCalc);
+              autoCalc();
             } else {
               priceContainer.classList.add('hidden');
+              document.getElementById('customTotalCostContainer').classList.add('hidden');
               capacityGrid.classList.value = 'grid grid-cols-1 gap-4';
               priceInp.required = false;
               priceInp.value = '0';
+              document.getElementById('splitTotalCost').required = false;
+              document.getElementById('splitTotalCost').value = '';
             }
           });
-          // Set initial state
           toggle.dispatchEvent(new Event('change'));
         }
       }
@@ -1539,6 +1579,7 @@
         details: {
           app: type === 'digital_subscriptions' ? document.getElementById('splitService').value : document.getElementById('splitDetails').value,
           info: document.getElementById('splitDetails').value,
+          total_cost: document.getElementById('splitTotalCost') ? document.getElementById('splitTotalCost').value : null,
           payment_enabled: document.getElementById('splitPaymentEnabled') ? document.getElementById('splitPaymentEnabled').checked : true
         },
         location: type === 'digital_subscriptions' ? 'Remote' : 'Local/Community',
@@ -1716,16 +1757,16 @@
     function toggleAIChat() {
       const chat = document.getElementById('aiAssistantChat');
       const isOpen = chat.classList.toggle('hidden');
-      if (!isOpen) { 
-          chat.classList.add('active'); 
-          isAIChatOpen = true; 
-          // Initialize chatbot flow if it's the first time
-          if (document.getElementById('aiMessageArea').children.length === 0) {
-              interactChatbot('main_menu');
-          }
-      } else { 
-          chat.classList.remove('active'); 
-          isAIChatOpen = false; 
+      if (!isOpen) {
+        chat.classList.add('active');
+        isAIChatOpen = true;
+        // Initialize chatbot flow if it's the first time
+        if (document.getElementById('aiMessageArea').children.length === 0) {
+          interactChatbot('main_menu');
+        }
+      } else {
+        chat.classList.remove('active');
+        isAIChatOpen = false;
       }
     }
 
@@ -1752,64 +1793,64 @@
     }
 
     function renderChatbotOptions(options) {
-        const optionsArea = document.getElementById('aiOptionsArea');
-        optionsArea.innerHTML = ''; // clear existing
-        
-        if (!options || options.length === 0) return;
+      const optionsArea = document.getElementById('aiOptionsArea');
+      optionsArea.innerHTML = ''; // clear existing
 
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = "w-full text-left px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-primary hover:bg-blue-50 dark:hover:bg-slate-800 transition-all shadow-sm";
-            btn.innerText = opt.label;
-            btn.onclick = () => {
-                addAIMessage('user', opt.label);
-                // Temporarily disable buttons until response
-                optionsArea.innerHTML = '<div class="text-center text-xs text-slate-400 py-2 animate-pulse">Thinking...</div>';
-                interactChatbot(opt.next, opt.context);
-            };
-            optionsArea.appendChild(btn);
-        });
+      if (!options || options.length === 0) return;
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-primary hover:bg-blue-50 dark:hover:bg-slate-800 transition-all shadow-sm";
+        btn.innerText = opt.label;
+        btn.onclick = () => {
+          addAIMessage('user', opt.label);
+          // Temporarily disable buttons until response
+          optionsArea.innerHTML = '<div class="text-center text-xs text-slate-400 py-2 animate-pulse">Thinking...</div>';
+          interactChatbot(opt.next, opt.context);
+        };
+        optionsArea.appendChild(btn);
+      });
     }
 
     async function interactChatbot(node_id, context = {}) {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                addAIMessage('assistant', "Hello! I am the UNIO AI Assistant. Please log in or sign up above to track your orders, check your trust score, and manage your splits!");
-                renderChatbotOptions([{label: "Got it!", next:"close_chat"}]);
-                return;
-            }
-
-            const res = await fetch(`${API_URL}/chatbot/interact`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ node_id, context })
-            });
-
-            if (res.status === 401 || res.status === 403) {
-                addAIMessage('assistant', "Your session has expired. Please log in again to continue.");
-                renderChatbotOptions([{label: "Got it!", next:"close_chat"}]);
-                return;
-            }
-
-            if (!res.ok) throw new Error("Failed to fetch next step");
-
-            const data = await res.json();
-            
-            // Allow a tiny delay for natural feel
-            setTimeout(() => {
-                addAIMessage('assistant', data.message);
-                renderChatbotOptions(data.options);
-            }, 400);
-
-            if (node_id === 'close_chat') {
-                setTimeout(() => toggleAIChat(), 1500);
-            }
-        } catch (err) {
-            console.error("Chatbot Error:", err);
-            addAIMessage('assistant', "Sorry, I lost connection to the server. Let's restart.");
-            renderChatbotOptions([{ label: "Restart Chat", next: "main_menu" }]);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          addAIMessage('assistant', "Hello! I am the UNIO AI Assistant. Please log in or sign up above to track your orders, check your trust score, and manage your splits!");
+          renderChatbotOptions([{ label: "Got it!", next: "close_chat" }]);
+          return;
         }
+
+        const res = await fetch(`${API_URL}/chatbot/interact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ node_id, context })
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          addAIMessage('assistant', "Your session has expired. Please log in again to continue.");
+          renderChatbotOptions([{ label: "Got it!", next: "close_chat" }]);
+          return;
+        }
+
+        if (!res.ok) throw new Error("Failed to fetch next step");
+
+        const data = await res.json();
+
+        // Allow a tiny delay for natural feel
+        setTimeout(() => {
+          addAIMessage('assistant', data.message);
+          renderChatbotOptions(data.options);
+        }, 400);
+
+        if (node_id === 'close_chat') {
+          setTimeout(() => toggleAIChat(), 1500);
+        }
+      } catch (err) {
+        console.error("Chatbot Error:", err);
+        addAIMessage('assistant', "Sorry, I lost connection to the server. Let's restart.");
+        renderChatbotOptions([{ label: "Restart Chat", next: "main_menu" }]);
+      }
     }
 
     // --- Category Slider Logic ---
@@ -1844,10 +1885,12 @@
 
       // Update actions
       const actions = document.getElementById('categoryActions');
-      if (category === 'logistics') {
-        actions.classList.remove('hidden');
-      } else {
-        actions.classList.add('hidden');
+      if (actions) {
+        if (category === 'logistics') {
+          actions.classList.remove('hidden');
+        } else {
+          actions.classList.add('hidden');
+        }
       }
     }
 
@@ -2289,45 +2332,52 @@
     });
   </script>
   <!-- Savings Analytics Modal -->
-  <div id="savingsAnalyticsModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-          <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <div>
-                  <h2 class="text-2xl font-black text-slate-900 dark:text-white">Savings Analytics</h2>
-                  <p class="text-xs text-slate-500 font-medium">Monthly growth and detailed summary</p>
-              </div>
-              <button onclick="closeSavingsAnalytics()" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-colors">
-                  <span class="material-symbols-outlined">close</span>
-              </button>
-          </div>
-          
-          <div class="flex-1 overflow-y-auto p-8 space-y-8 sidebar-scroll">
-              <!-- Graph Section -->
-              <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                  <div class="flex justify-between items-center mb-6">
-                      <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Savings Trend</h3>
-                      <span class="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">+12.5% vs Last Month</span>
-                  </div>
-                  <div class="relative h-[250px] w-full">
-                      <canvas id="savingsChart"></canvas>
-                  </div>
-              </div>
-
-              <!-- Summary List Section -->
-              <div>
-                  <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 px-1">Earning Summary</h3>
-                  <div id="savingsSummaryList" class="space-y-3">
-                      <div class="text-center py-10 text-slate-400 text-sm">Loading history...</div>
-                  </div>
-              </div>
-          </div>
-          
-          <div class="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
-              <button onclick="closeSavingsAnalytics()" class="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-primary/20 transition-all">
-                  Dismiss
-              </button>
-          </div>
+  <div id="savingsAnalyticsModal"
+    class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div
+      class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+      <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900 dark:text-white">Savings Analytics</h2>
+          <p class="text-xs text-slate-500 font-medium">Monthly growth and detailed summary</p>
+        </div>
+        <button onclick="closeSavingsAnalytics()"
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
+
+      <div class="flex-1 overflow-y-auto p-8 space-y-8 sidebar-scroll">
+        <!-- Graph Section -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Savings Trend</h3>
+            <span
+              class="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">+12.5%
+              vs Last Month</span>
+          </div>
+          <div class="relative h-[250px] w-full">
+            <canvas id="savingsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Summary List Section -->
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 px-1">Earning
+            Summary</h3>
+          <div id="savingsSummaryList" class="space-y-3">
+            <div class="text-center py-10 text-slate-400 text-sm">Loading history...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+        <button onclick="closeSavingsAnalytics()"
+          class="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-primary/20 transition-all">
+          Dismiss
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Expandable Map Modal -->

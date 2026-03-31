@@ -40,8 +40,9 @@ const PaymentSystem = {
      * Show the payment modal with QR code
      * @param {Object} paymentData { paymentId, confirmationId, qrCodeData, amount }
      * @param {Function} onConfirm Callback when payment is manually confirmed
+     * @param {Function} onCancel Callback when payment is cancelled via modal closure
      */
-    showModal: function (paymentData, onConfirm) {
+    showModal: function (paymentData, onConfirm, onCancel) {
         // Remove existing modal if any
         const existingModal = document.getElementById('payment-system-modal');
         if (existingModal) existingModal.remove();
@@ -129,11 +130,11 @@ const PaymentSystem = {
         const modal = document.getElementById('payment-system-modal');
         const closeBtn = modal.querySelector('button[onclick*="remove"]');
         if (closeBtn) {
-            const origOnclick = closeBtn.getAttribute('onclick');
-            closeBtn.setAttribute('onclick', '');
+            closeBtn.removeAttribute('onclick');
             closeBtn.addEventListener('click', () => {
                 clearInterval(pollInterval);
                 modal.remove();
+                if (onCancel) onCancel(paymentData);
             });
         }
 

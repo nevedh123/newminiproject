@@ -45,10 +45,14 @@ router.post('/', authenticateToken, async (req, res) => {
         const { type, category, title, description, price, starting_bid, auction_end, images } = req.body;
         const seller_id = req.user.id;
 
+        const parsedPrice = price === '' || price === undefined ? null : parseFloat(price);
+        const parsedStartingBid = starting_bid === '' || starting_bid === undefined ? null : parseFloat(starting_bid);
+        const parsedAuctionEnd = auction_end === '' || auction_end === undefined ? null : auction_end;
+
         const result = await pool.query(
             `INSERT INTO marketplace_items (seller_id, type, category, title, description, price, starting_bid, current_highest_bid, auction_end, images) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, $9) RETURNING *`,
-            [seller_id, type, category, title, description, price, starting_bid, auction_end, JSON.stringify(images || [])]
+            [seller_id, type, category, title, description, parsedPrice, parsedStartingBid, parsedAuctionEnd, JSON.stringify(images || [])]
         );
 
         res.json(result.rows[0]);
@@ -147,13 +151,16 @@ router.get('/chats/inbox', authenticateToken, async (req, res) => {
         const chats = await pool.query(
             `SELECT c.*, m.title as item_title, 
                     u_buyer.name as buyer_name, u_seller.name as seller_name,
-                    (SELECT content FROM marketplace_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+                    (SELECT content FROM marketplace_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message,
+                    (SELECT created_at FROM marketplace_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_time
              FROM marketplace_chats c
              JOIN marketplace_items m ON c.item_id = m.id
              JOIN users u_buyer ON c.buyer_id = u_buyer.id
              JOIN users u_seller ON c.seller_id = u_seller.id
-             WHERE c.buyer_id = $1 OR c.seller_id = $1
-             ORDER BY c.created_at DESC`,
+             LEFT JOIN split_requests sr ON sr.item_id = c.item_id AND sr.creator_id = c.buyer_id
+             LEFT JOIN split_members sm ON sm.split_id = sr.id AND sm.user_id = $1
+             WHERE c.buyer_id = $1 OR c.seller_id = $1 OR sm.user_id IS NOT NULL
+             ORDER BY last_message_time DESC NULLS LAST, c.created_at DESC`,
             [userId]
         );
         res.json(chats.rows);
@@ -177,12 +184,25 @@ router.post('/chats', authenticateToken, async (req, res) => {
 
         if (buyer_id === seller_id) return res.status(400).json({ message: "You cannot chat with yourself" });
 
+        // If user is in a split for this item, use the creator's chat rather than creating a duplicate
+        const splitCheck = await pool.query(`
+            SELECT sr.creator_id 
+            FROM split_requests sr
+            JOIN split_members sm ON sr.id = sm.split_id
+            WHERE sr.item_id = $1 AND sm.user_id = $2
+        `, [item_id, buyer_id]);
+
+        let chatBuyerId = buyer_id;
+        if (splitCheck.rows.length > 0) {
+            chatBuyerId = splitCheck.rows[0].creator_id;
+        }
+
         const chat = await pool.query(
             `INSERT INTO marketplace_chats (item_id, buyer_id, seller_id) 
              VALUES ($1, $2, $3) 
              ON CONFLICT (item_id, buyer_id) DO UPDATE SET item_id = EXCLUDED.item_id 
              RETURNING *`,
-            [item_id, buyer_id, seller_id]
+            [item_id, chatBuyerId, seller_id]
         );
 
         res.json(chat.rows[0]);
@@ -197,6 +217,18 @@ router.post('/messages', authenticateToken, async (req, res) => {
     try {
         const { chat_id, content } = req.body;
         const sender_id = req.user.id;
+
+        // Verify Access
+        const accessCheck = await pool.query(
+            `SELECT c.id 
+             FROM marketplace_chats c
+             LEFT JOIN split_requests sr ON sr.item_id = c.item_id AND sr.creator_id = c.buyer_id
+             LEFT JOIN split_members sm ON sm.split_id = sr.id AND sm.user_id = $2
+             WHERE c.id = $1 AND (c.buyer_id = $2 OR c.seller_id = $2 OR sm.user_id IS NOT NULL)`,
+            [chat_id, sender_id]
+        );
+
+        if (accessCheck.rows.length === 0) return res.status(403).json({ message: "Not authorized to write to this chat" });
 
         const message = await pool.query(
             'INSERT INTO marketplace_messages (chat_id, sender_id, content) VALUES ($1, $2, $3) RETURNING *',
@@ -214,8 +246,26 @@ router.post('/messages', authenticateToken, async (req, res) => {
 router.get('/chats/:id/messages', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
+
+        // Verify Access
+        const accessCheck = await pool.query(
+            `SELECT c.id 
+             FROM marketplace_chats c
+             LEFT JOIN split_requests sr ON sr.item_id = c.item_id AND sr.creator_id = c.buyer_id
+             LEFT JOIN split_members sm ON sm.split_id = sr.id AND sm.user_id = $2
+             WHERE c.id = $1 AND (c.buyer_id = $2 OR c.seller_id = $2 OR sm.user_id IS NOT NULL)`,
+            [id, userId]
+        );
+
+        if (accessCheck.rows.length === 0) return res.status(403).json({ message: "Not authorized to view this chat" });
+
         const messages = await pool.query(
-            'SELECT * FROM marketplace_messages WHERE chat_id = $1 ORDER BY created_at ASC',
+            `SELECT m.*, u.name as sender_name 
+             FROM marketplace_messages m 
+             JOIN users u ON m.sender_id = u.id 
+             WHERE m.chat_id = $1 
+             ORDER BY m.created_at ASC`,
             [id]
         );
         res.json(messages.rows);

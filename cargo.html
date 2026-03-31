@@ -122,7 +122,7 @@
         <div class="grid lg:grid-cols-12 gap-8">
             <div class="lg:col-span-7 space-y-6">
                 <!-- Route Details (Upgraded to Search Picker) -->
-                <div
+                <div id="routeSection"
                     class="bg-white dark:bg-slate-800 rounded-2xl p-8 card-shadow border border-white dark:border-slate-700">
                     <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">navigation</span>
@@ -352,6 +352,12 @@
                         });
                     }
 
+                    // Hide Route Your Segment for warehouse type
+                    if (currentListing.type === 'warehouse') {
+                        const routeSection = document.getElementById('routeSection');
+                        if (routeSection) routeSection.style.display = 'none';
+                    }
+
                     updateMapVisualization();
                 }
             } catch (err) { console.error(err); }
@@ -522,8 +528,10 @@
             }
 
             if (!userPickup || !userDelivery) {
-                alert("Please select your pickup and delivery locations on the map search.");
-                return;
+                if (currentListing?.type !== 'warehouse') {
+                    alert("Please select your pickup and delivery locations on the map search.");
+                    return;
+                }
             }
 
             const weight = document.querySelector('input[placeholder="0.00"]').value;
@@ -543,6 +551,7 @@
                             user_pickup: userPickup,
                             user_delivery: userDelivery,
                             cargo_type: document.querySelector('select').value,
+                            selected_date: document.getElementById('pickupDate').value,
                             dimensions: {
                                 l: document.querySelector('input[placeholder="Length"]').value,
                                 w: document.querySelector('input[placeholder="Width"]').value,
@@ -577,6 +586,15 @@
                     // Payment confirmed successfully
                     alert('Booking and Payment Successful! Your confirmation ID is ' + confirmedData.confirmationId);
                     window.location.href = 'consumer.html';
+                }, async () => {
+                    // Payment cancelled, restore inventory
+                    try {
+                        const token = localStorage.getItem('token');
+                        await fetch(`${API_URL}/bookings/${booking.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                    } catch(e) { console.error('Failed to restore capacity', e); }
                 });
 
             } catch (err) {

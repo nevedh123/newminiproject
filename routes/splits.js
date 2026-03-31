@@ -146,6 +146,21 @@ router.post('/join', authenticateToken, async (req, res) => {
             [newFilledSlots, status, split_id]
         );
 
+        // --- Automatically make them friends ---
+        const creator_id = split.creator_id;
+        if (creator_id !== user_id) {
+            // 1. Make them friends
+            const [id1, id2] = user_id < creator_id ? [user_id, creator_id] : [creator_id, user_id];
+            await client.query(
+                `INSERT INTO friends (user_id1, user_id2, status) 
+                 VALUES ($1, $2, 'accepted') 
+                 ON CONFLICT (user_id1, user_id2) 
+                 DO UPDATE SET status = 'accepted'`,
+                [id1, id2]
+            );
+        }
+        // ---------------------------------------
+
         await client.query('COMMIT');
         res.json(updatedSplit.rows[0]);
     } catch (err) {
@@ -224,6 +239,29 @@ router.get('/:splitId/payment-history', authenticateToken, async (req, res) => {
                     .reduce((sum, p) => sum + parseFloat(p.payment_amount || 0), 0)
             }
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
+// Get a specific split by ID
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const splitRes = await pool.query(
+            `SELECT s.*, u.name as creator_name 
+             FROM split_requests s
+             JOIN users u ON s.creator_id = u.id
+             WHERE s.id = $1`,
+            [id]
+        );
+        
+        if (splitRes.rows.length === 0) {
+            return res.status(404).json({ message: "Split not found" });
+        }
+        
+        res.json(splitRes.rows[0]);
     } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");

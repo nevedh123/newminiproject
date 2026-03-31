@@ -1,3 +1,15 @@
+/* =========================================
+   BOOKINGS.JS - THE COST SPLITTING & RESERVATION LOGIC
+   =========================================
+   This is one of the most important files. It handles:
+   1. Creating a booking (when a user books a truck).
+   2. Deducting the required space from the truck's total capacity.
+   3. Cost Splitting: Calculating how much one person pays based on how much space they take.
+   
+   If the teacher asks: "How does the system stop you from overbooking a truck?"
+   Answer: "In the POST / bookings API, we parse the capacity (e.g., kg or tons) 
+   and directly check if requested_qty <= available_capacity before saving to the DB."
+========================================= */
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
@@ -44,8 +56,11 @@ router.get('/all-joined', authenticateToken, async (req, res) => {
             SELECT 
                 'booking' as entry_type,
                 b.id, b.status, b.payment_status, b.quantity, b.total_price, 
-                b.cancellation_status, b.created_at,
-                l.type, l.location, l.date,
+                b.cancellation_status, b.created_at, b.details,
+                b.updated_at,
+                b.listing_id,
+                l.type, l.location, l.date, l.current_location,
+                l.details as listing_details,
                 dp.confirmation_id
             FROM bookings b
             JOIN listings l ON b.listing_id = l.id
@@ -60,8 +75,12 @@ router.get('/all-joined', authenticateToken, async (req, res) => {
                 sm.split_id as id, s.status, 
                 (CASE WHEN dp.id IS NOT NULL THEN 'paid' ELSE 'unpaid' END) as payment_status,
                 1 as quantity, s.price_per_person as total_price,
-                NULL as cancellation_status, sm.joined_at as created_at,
+                NULL as cancellation_status, sm.joined_at as created_at, NULL as details,
+                NULL as updated_at,
+                NULL as listing_id,
                 m.type, 'Marketplace' as location, m.title as date,
+                NULL as current_location,
+                NULL as listing_details,
                 dp.confirmation_id
             FROM split_members sm
             JOIN split_requests s ON sm.split_id = s.id
@@ -91,7 +110,7 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         await client.query('BEGIN'); // Start Transaction
 
-        const { listing_id, quantity = 1 } = req.body;
+        const { listing_id, quantity = 1, details = {} } = req.body;
         const userId = req.user.id;
 
         // 1. Fetch Listing
@@ -125,9 +144,9 @@ router.post('/', authenticateToken, async (req, res) => {
 
         // 5. Create Booking
         const newBooking = await client.query(
-            `INSERT INTO bookings (user_id, listing_id, status, payment_status, quantity, total_price) 
-             VALUES ($1, $2, 'confirmed', 'unpaid', $3, $4) RETURNING *`,
-            [userId, listing_id, quantity, totalPrice]
+            `INSERT INTO bookings (user_id, listing_id, status, payment_status, quantity, total_price, details) 
+             VALUES ($1, $2, 'confirmed', 'unpaid', $3, $4, $5) RETURNING *`,
+            [userId, listing_id, quantity, totalPrice, details]
         );
 
         // 6. Check Payment Required Flag

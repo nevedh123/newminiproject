@@ -54,6 +54,22 @@
 
 <body
   class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+  <!-- =========================================================
+       INDEX.HTML - THE HOMEPAGE (THE FRONT DOOR)
+       =========================================================
+       This is the first page the user sees.
+       
+       STYLING (Tailwind CSS): 
+       We use Tailwind, which means styles are written directly in the HTML `class="..."` attribute.
+       If the teacher asks you to change a color:
+       1. Find the element (like a button).
+       2. Look for `bg-primary` (which is blue) or `bg-white`.
+       3. Change it to `bg-red-500` or `bg-green-500` and save.
+       
+       LOGIC (JavaScript):
+       Scroll down to the <script> tags to see how we fetch `/api/stats/global`
+       to update the "Amount Earned" dashboard dynamically!
+  ========================================================= -->
   <header
     class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-navy-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
     <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -179,7 +195,22 @@
     </div>
   </div>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Force logout on server restart
+      try {
+        const API_URL = window.location.port === '3001' ? 'http://localhost:3000/api' : '/api';
+        const sysRes = await fetch(`${API_URL}/sys/session`);
+        if (sysRes.ok) {
+            const { sessionId } = await sysRes.json();
+            const storedSessionId = localStorage.getItem('server_session_id');
+            if (storedSessionId && storedSessionId !== sessionId) {
+                localStorage.clear();
+                window.location.reload();
+                return;
+            }
+            localStorage.setItem('server_session_id', sessionId);
+        }
+      } catch (e) { /* ignore */ }
       const user = JSON.parse(localStorage.getItem('user'));
       const token = localStorage.getItem('token');
       const serverSession = localStorage.getItem('server_session_id');
@@ -953,7 +984,8 @@
         // --- GLOBAL STATS FETCHING ---
         async function fetchGlobalStats() {
             try {
-                const res = await fetch('/api/stats/global');
+                const API_URL = window.location.port === '3001' ? 'http://localhost:3000/api' : '/api';
+                const res = await fetch(`${API_URL}/stats/global`);
                 const data = await res.json();
                 
                 if (res.ok) {

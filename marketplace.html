@@ -166,10 +166,10 @@
     </main>
 
     <!-- Sell Modal -->
-    <div id="sellModal" class="fixed inset-0 z-[100] hidden items-center justify-center">
+    <div id="sellModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onclick="closeSellModal()"></div>
         <div
-            class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-slide-up text-slate-900 dark:text-white">
+            class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-slide-up text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto sidebar-scroll">
             <h2 class="text-2xl font-black mb-6">List New Item</h2>
             <form id="sellForm" class="space-y-5">
                 <div class="flex gap-2 p-1 bg-slate-50 dark:bg-slate-950/50 rounded-2xl mb-4 border border-slate-200 dark:border-none">
@@ -990,8 +990,9 @@
                 const userId = JSON.parse(atob(token.split('.')[1])).id;
 
                 area.innerHTML = messages.map(m => `
-                    <div class="flex flex-col ${m.sender_id === userId ? 'items-end' : 'items-start'}">
-                        <div class="p-3 rounded-2xl ${m.sender_id === userId ? 'bg-primary text-white rounded-tr-none' : 'bg-slate-800 text-slate-300 rounded-tl-none'} text-sm max-w-[80%] shadow-sm">
+                    <div class="flex flex-col mb-1 ${m.sender_id === userId ? 'items-end' : 'items-start'}">
+                        ${m.sender_id !== userId ? `<span class="text-[9px] text-slate-500 font-bold mb-0.5 ml-1">${m.sender_name}</span>` : ''}
+                        <div class="p-3 rounded-2xl ${m.sender_id === userId ? 'bg-primary text-white rounded-tr-none' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-300 rounded-tl-none border border-slate-200 dark:border-slate-700/50'} text-sm max-w-[80%] shadow-sm leading-relaxed">
                             ${m.content}
                         </div>
                     </div>
@@ -1082,7 +1083,12 @@
 
                 container.innerHTML = chats.map(chat => {
                     const isBuyer = chat.buyer_id === userId;
-                    const partnerName = isBuyer ? chat.seller_name : chat.buyer_name;
+                    const isSeller = chat.seller_id === userId;
+                    let partnerName = '';
+                    if (isBuyer) partnerName = chat.seller_name;
+                    else if (isSeller) partnerName = chat.buyer_name;
+                    else partnerName = chat.seller_name; // I'm a split member, the main partner I'm talking to is the seller
+
                     const lastMsg = chat.last_message || 'No messages yet';
 
                     return `

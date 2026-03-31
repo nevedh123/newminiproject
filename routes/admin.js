@@ -45,8 +45,9 @@ router.put('/users/:id/role', async (req, res) => {
 router.delete('/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM users WHERE id = $1', [id]);
-        res.json({ message: "User removed successfully" });
+        // SOFT BAN instead of DELETE to avoid foreign key issues
+        await pool.query('UPDATE users SET is_banned = TRUE WHERE id = $1', [id]);
+        res.json({ message: "User banned successfully" });
     } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");
@@ -91,7 +92,7 @@ router.get('/listings/all', async (req, res) => {
 router.put('/listings/:id/approve', async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('UPDATE listings SET approved = TRUE WHERE id = $1', [id]);
+        await pool.query("UPDATE listings SET approved = TRUE, status = 'approved' WHERE id = $1", [id]);
         res.json({ message: "Listing approved successfully" });
     } catch (err) {
         console.error(err.message);
@@ -99,12 +100,13 @@ router.put('/listings/:id/approve', async (req, res) => {
     }
 });
 
-// DELETE /api/admin/listings/:id/reject - Reject (Delete) a listing
+// DELETE /api/admin/listings/:id/reject - Reject (Soft-Delete) a listing
 router.delete('/listings/:id/reject', async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM listings WHERE id = $1', [id]);
-        res.json({ message: "Listing rejected and removed" });
+        // Soft reject instead of delete to avoid foreign key errors
+        await pool.query("UPDATE listings SET approved = FALSE, status = 'rejected' WHERE id = $1", [id]);
+        res.json({ message: "Listing rejected successfully" });
     } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");

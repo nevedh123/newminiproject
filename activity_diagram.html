@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>UNIO Activity Diagram</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { background: white; margin: 40px; font-family: Arial, sans-serif; }
+h1 { text-align: center; color: #1e3a5f; margin-bottom: 30px; }
+.mermaid { display: flex; justify-content: center; }
+</style>
+</head><body>
+<h1>UNIO Platform — Activity Diagram</h1>
+<div class="mermaid">
+flowchart TD
+    A(["⬤ Start"]) --> B["Consumer: Register / Login"]
+    B --> C{"Valid Credentials?"}
+    C -- No --> D["Show Error Message"] --> B
+    C -- Yes --> E["System: Issue JWT Token"]
+    E --> F["Consumer: Browse Available Listings"]
+    F --> G["Consumer: Select Listing & Book Service"]
+    G --> H["System: Insert Booking Record into DB"]
+    H --> I["System: Emit Socket.IO Notification"]
+    I --> J["Provider: Receive Booking Notification"]
+    J --> K["Consumer: Make Payment (UPI / Card / Net Banking)"]
+    K --> L["System: Confirm Payment — status = paid"]
+    L --> M{"Priority Booking?"}
+    M -- Yes --> N["System: Set is_priority = TRUE"]
+    M -- No --> O["Provider: Update Tracking Location"]
+    N --> O
+    O --> P["System: Broadcast Live Location via Socket.IO"]
+    P --> Q["Consumer: View Real-time Order Tracking"]
+    Q --> R{"Order Delivered?"}
+    R -- No --> O
+    R -- Yes --> S["System: Update status = delivered"]
+    S --> T["Consumer: Submit Rating (1–5 Stars)"]
+    T --> U["System: Save Feedback & Update Trust Score"]
+    U --> V(["⬤ End"])
+
+    style A fill:#1e40af,color:#fff,stroke:#1e40af
+    style V fill:#1e40af,color:#fff,stroke:#1e40af
+    style C fill:#f59e0b,color:#000,stroke:#d97706
+    style M fill:#f59e0b,color:#000,stroke:#d97706
+    style R fill:#f59e0b,color:#000,stroke:#d97706
+    style B fill:#dbeafe,stroke:#3b82f6
+    style F fill:#dbeafe,stroke:#3b82f6
+    style G fill:#dbeafe,stroke:#3b82f6
+    style K fill:#dbeafe,stroke:#3b82f6
+    style Q fill:#dbeafe,stroke:#3b82f6
+    style T fill:#dbeafe,stroke:#3b82f6
+    style E fill:#ffedd5,stroke:#f97316
+    style H fill:#ffedd5,stroke:#f97316
+    style I fill:#ffedd5,stroke:#f97316
+    style L fill:#ffedd5,stroke:#f97316
+    style N fill:#ffedd5,stroke:#f97316
+    style P fill:#ffedd5,stroke:#f97316
+    style S fill:#ffedd5,stroke:#f97316
+    style U fill:#ffedd5,stroke:#f97316
+    style J fill:#d1fae5,stroke:#10b981
+    style O fill:#d1fae5,stroke:#10b981
+    style D fill:#fee2e2,stroke:#ef4444
+</div>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis'}});</script>
+</body></html>

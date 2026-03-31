@@ -161,7 +161,7 @@ router.get('/rateable', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // People shared bookings with
+        // People shared bookings with (co-consumers)
         const bookingPartners = await pool.query(`
             SELECT DISTINCT u.id, u.name, u.email,
                             COALESCE(AVG(ts2.score), 0) as avg_score,
@@ -174,6 +174,38 @@ router.get('/rateable', authenticateToken, async (req, res) => {
             LEFT JOIN trust_scores ts2 ON ts2.ratee_id = u.id
             LEFT JOIN trust_scores ts_mine ON ts_mine.rater_id = $1 AND ts_mine.ratee_id = u.id
             WHERE b1.user_id = $1
+            GROUP BY u.id, ts_mine.id
+        `, [userId]);
+
+        // Consumers who joined MY split (I am the provider)
+        const myConsumers = await pool.query(`
+            SELECT DISTINCT u.id, u.name, u.email,
+                            COALESCE(AVG(ts2.score), 0) as avg_score,
+                            COUNT(ts2.id) as rating_count,
+                            ts_mine.score as my_rating,
+                            ts_mine.comment as my_comment
+            FROM listings l
+            JOIN bookings b ON l.id = b.listing_id
+            JOIN users u ON u.id = b.user_id AND u.id != $1
+            LEFT JOIN trust_scores ts2 ON ts2.ratee_id = u.id
+            LEFT JOIN trust_scores ts_mine ON ts_mine.rater_id = $1 AND ts_mine.ratee_id = u.id
+            WHERE l.provider_id = $1
+            GROUP BY u.id, ts_mine.id
+        `, [userId]);
+
+        // Providers of the splits I joined (I am the consumer)
+        const myProviders = await pool.query(`
+            SELECT DISTINCT u.id, u.name, u.email,
+                            COALESCE(AVG(ts2.score), 0) as avg_score,
+                            COUNT(ts2.id) as rating_count,
+                            ts_mine.score as my_rating,
+                            ts_mine.comment as my_comment
+            FROM bookings b
+            JOIN listings l ON b.listing_id = l.id AND l.provider_id != $1
+            JOIN users u ON u.id = l.provider_id
+            LEFT JOIN trust_scores ts2 ON ts2.ratee_id = u.id
+            LEFT JOIN trust_scores ts_mine ON ts_mine.rater_id = $1 AND ts_mine.ratee_id = u.id
+            WHERE b.user_id = $1
             GROUP BY u.id, ts_mine.id
         `, [userId]);
 
@@ -210,7 +242,7 @@ router.get('/rateable', authenticateToken, async (req, res) => {
         // Merge and deduplicate
         const seen = new Set();
         const merged = [];
-        for (const row of [...bookingPartners.rows, ...marketPartners.rows, ...friendPartners.rows]) {
+        for (const row of [...bookingPartners.rows, ...myConsumers.rows, ...myProviders.rows, ...marketPartners.rows, ...friendPartners.rows]) {
             if (!seen.has(row.id)) {
                 seen.add(row.id);
                 merged.push(row);

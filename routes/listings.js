@@ -115,4 +115,53 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+
+// Update current location of a cargo split (Provider Only)
+router.put('/:id/location', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { current_location } = req.body;
+        const providerId = req.user.id;
+
+        if (!current_location) {
+            return res.status(400).json({ message: 'current_location is required' });
+        }
+
+        // Verify ownership
+        const listingRes = await pool.query(
+            'SELECT provider_id, type, details FROM listings WHERE id = $1',
+            [id]
+        );
+        if (listingRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+        const listing = listingRes.rows[0];
+        if (listing.provider_id !== providerId) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Validate the location is among the defined stops
+        const route = listing.details?.route_full;
+        if (route) {
+            const validNames = [];
+            if (route.start) validNames.push(route.start.name);
+            (route.stops || []).forEach(s => { if (s) validNames.push(s.name); });
+            if (route.end) validNames.push(route.end.name);
+            if (!validNames.includes(current_location)) {
+                return res.status(400).json({ message: 'Location must be one of the defined route stops', valid: validNames });
+            }
+        }
+
+        await pool.query(
+            'UPDATE listings SET current_location = $1 WHERE id = $2',
+            [current_location, id]
+        );
+
+        res.json({ message: 'Location updated', current_location });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

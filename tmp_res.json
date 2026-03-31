@@ -1,0 +1,12 @@
+[
+  {
+    "details": {
+      "app": "try",
+      "info": "good",
+      "total_cost": "1000",
+      "payment_enabled": true
+    },
+    "capacity": "9 slots",
+    "price_per_unit": "100.00"
+  }
+]

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>UNIO Architecture & Application Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { background: #f8fafc; margin: 40px; font-family: 'Segoe UI', Arial, sans-serif; }
+h1 { text-align: center; color: #0f172a; margin-bottom: 5px; }
+h2 { text-align: center; color: #334155; margin-top: 40px; margin-bottom: 20px; font-size: 1.4rem; }
+.diagram-container { 
+    display: flex; 
+    justify-content: center; 
+    background: white; 
+    padding: 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    max-width: 1000px;
+    margin: 0 auto;
+    overflow-x: auto;
+}
+.mermaid { width: 100%; text-align: center; }
+</style>
+</head>
+<body>
+<h1>UNIO Platform Diagrams</h1>
+
+<h2>1. Component Architecture</h2>
+<div class="diagram-container">
+<div class="mermaid">
+flowchart TB
+    subgraph Client [Client / Browser Layer]
+        UI[Frontend UI<br/>HTML5, Tailwind CSS, JS]
+        JWT[localStorage<br/>Session Management]
+        UI <--> JWT
+    end
+
+    subgraph CDN [Frontend Hosting]
+        Vercel[Vercel<br/>Static Site Hosting]
+    end
+
+    subgraph Application [Application Layer / Backend]
+        direction TB
+        API[Express.js REST API]
+        Auth[Auth Server<br/>bcrypt & JWT]
+        Listings[Listing Engine]
+        Bookings[Booking & Split Engine]
+        
+        API --- Auth
+        API --- Listings
+        API --- Bookings
+    end
+
+    subgraph Hosting [Backend Hosting]
+        Render[Render<br/>Node.js Runtime]
+    end
+
+    subgraph Data [Data Layer]
+        DB[(PostgreSQL Database)]
+    end
+
+    Client -- HTTP/JSON requests --> CDN
+    CDN -- REST API calls --> Render
+    Render --> Application
+    Application -- Queries & Mutations --> DB
+    
+    classDef default fill:#f1f5f9,stroke:#94a3b8,stroke-width:2px,color:#334155,rx:5px,ry:5px;
+    classDef main fill:#e0f2fe,stroke:#38bdf8,stroke-width:2px,color:#0c4a6e,font-weight:bold;
+    classDef db fill:#ffedd5,stroke:#fdba74,stroke-width:2px,color:#9a3412;
+    class UI,JWT,API,Auth,Listings,Bookings,Payments,Vercel,Render main;
+    class DB db;
+</div>
+</div>
+
+<h2>2. User Journey Flow (Navigation & Button Clicks)</h2>
+<div class="diagram-container">
+<div class="mermaid">
+flowchart TD
+    %% Entry Point
+    Index(("Home Page<br/>(index.html)")) -->|Click 'Login'| LoginScreen["Login Screen<br/>(login.html)"]
+    
+    %% Authentication
+    LoginScreen -->|Enter Credentials &<br/>Click 'Submit'| API_Auth{Backend<br/>Role Validation}
+    
+    %% Role Fork
+    API_Auth -->|Role: Consumer| ConsumerDash["Consumer Dashboard<br/>(consumer.html)"]
+    API_Auth -->|Role: Provider| ProviderDash["Provider Dashboard<br/>(provider.html)"]
+    API_Auth -->|Role: Admin| AdminDash["Admin Dashboard<br/>(admin.html)"]
+    
+    %% Consumer Flow
+    ConsumerDash -.->|"Click 'Marketplace'"| Marketplace["Marketplace View<br/>(marketplace.html)"]
+    ConsumerDash -.->|"Click 'View Community'"| Community["Community Connections<br/>(community.html)"]
+    
+    Marketplace -->|"Click 'Book Resource'"| BookingScreen["Booking Page<br/>(booking.html)"]
+    BookingScreen -->|"Click 'Confirm Booking'"| ConfPage["Confirmation Page<br/>(bookingconfi.html)"]
+    
+    Community -->|"View Trustscores<br/>& Past Friends"| TrustView["Trustscores View"]
+    
+    %% Provider Flow
+    ProviderDash -.->|"Click 'Add Cargo'"| PostCargo["Post Cargo Form<br/>(cargo.html)"]
+    ProviderDash -.->|"Click 'Add Cold Storage'"| PostCold["Post Cold Storage<br/>(coldrese.html)"]
+    ProviderDash -.->|"Click 'Add Digital Sub'"| PostDigital["Post Digital Sub<br/>(digital.html)"]
+    
+    PostCargo -->|"Click 'Submit Listing'"| SubmitAPI((Backend API:<br/>Listings))
+    PostCold -->|"Click 'Submit Listing'"| SubmitAPI
+    PostDigital -->|"Click 'Submit Listing'"| SubmitAPI
+    SubmitAPI -->|Redirect Success| ProviderDash
+    
+    %% Admin Flow
+    AdminDash -.->|"Click 'Review Listing'"| AdminModal["Approval Modal"]
+    AdminModal -->|"Click 'Approve/Reject'"| ApproveAPI((Backend API:<br/>Approval))
+    ApproveAPI -->|Data Updated| AdminDash
+    
+    %% Styling
+    classDef page fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#14532d,rx:5px,ry:5px;
+    classDef backend fill:#fef08a,stroke:#eab308,stroke-width:2px,color:#713f12,shape:hexagon;
+    
+    class Index,LoginScreen,ConsumerDash,ProviderDash,AdminDash,Marketplace,Community,BookingScreen,ConfPage,PostCargo,PostCold,PostDigital,AdminModal page;
+    class API_Auth,SubmitAPI,ApproveAPI backend;
+</div>
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true, 
+        theme: 'base',
+        themeVariables: {
+            fontFamily: 'arial',
+            primaryColor: '#e0f2fe',
+            primaryTextColor: '#0c4a6e',
+            primaryBorderColor: '#38bdf8',
+            lineColor: '#64748b',
+        }
+    });
+</script>
+</body>
+</html>
